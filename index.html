@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Payday Panic</title>
+    
+    <style>
+        body { 
+            background-color: #121212; color: #ffffff; 
+            font-family: 'Pretendard', 'Segoe UI', Tahoma, sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            margin: 0; padding: 0; height: auto; min-height: 100vh; overflow-y: auto; padding-bottom: 50px; user-select: none;
+            touch-action: pan-y; 
+        }
+        
+        #game-wrapper {
+            width: 400px; background-color: #1e1e1e; margin-top: 20px; flex-shrink: 0;
+            border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            overflow: hidden; display: flex; flex-direction: column;
+            position: relative; transform-origin: top center; 
+        }
+        
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #2c3e50, #1a252f); z-index: 200;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .start-emoji { font-size: 60px; margin-bottom: 10px; animation: bounce 2s infinite; }
+        .start-title { font-size: 32px; font-weight: bold; color: #f1c40f; text-align: center; margin-bottom: 5px; }
+        .start-subtitle { font-size: 18px; color: #ecf0f1; margin-bottom: 15px; }
+        
+        .play-count-badge {
+            background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 20px;
+            font-size: 14px; color: #f39c12; font-weight: bold; margin-bottom: 30px;
+            border: 1px solid #e67e22; box-shadow: 0 0 10px rgba(230, 126, 34, 0.3);
+        }
+
+        .lang-btns { display: flex; flex-direction: column; gap: 10px; width: 75%; }
+        .btn-lang {
+            background: #34495e; color: white; border: 2px solid #576574; border-radius: 12px;
+            padding: 12px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-lang.rank-btn { background: #d35400; border-color: #e67e22; margin-top: 5px; }
+        .btn-lang:hover { transform: scale(1.05); filter: brightness(1.2); }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+        #status-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; background: #2c3e50; font-size: 18px; font-weight: bold;
+        }
+        .gold-text { color: #f1c40f; }
+        .month-text { color: #ecf0f1; }
+        
+        canvas { background-color: #273c53; cursor: crosshair; display: block; }
+        
+        #message-board {
+            position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; width: 380px; pointer-events: none; z-index: 10;
+        }
+        .msg-text { 
+            font-weight: bold; text-shadow: 2px 2px 4px #000; opacity: 0; transition: opacity 0.3s;
+            white-space: pre-line; line-height: 1.5;
+        }
+        .msg-tiny { font-size: 20px; color: #aaa; }
+        .msg-mid { font-size: 24px; color: #fff; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 10px;}
+        .msg-epic { font-size: 36px; color: #ffd700; text-transform: uppercase; }
+
+        #tutorial-tooltip {
+            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+            background: rgba(46, 204, 113, 0.95); color: white; padding: 10px 20px;
+            border-radius: 20px; font-weight: bold; font-size: 15px; z-index: 50;
+            pointer-events: none; box-shadow: 0 4px 15px rgba(0,0,0,0.6); display: none;
+            border: 2px solid #27ae60; text-align: center; width: 80%;
+            animation: bounceTooltip 0.8s infinite alternate;
+        }
+        @keyframes bounceTooltip {
+            from { transform: translate(-50%, 0); }
+            to { transform: translate(-50%, -10px); }
+        }
+
+        #month-banner {
+            position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(44, 62, 80, 0.95); border: 2px solid #f1c40f;
+            border-radius: 12px; padding: 20px; text-align: center; width: 80%; z-index: 20; 
+            display: none; flex-direction: column; gap: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+            animation: slideDown 0.4s ease-out;
+        }
+        @keyframes slideDown { from { top: 20%; opacity: 0; } to { top: 30%; opacity: 1; } }
+        .banner-title { font-size: 28px; font-weight: bold; color: #ecf0f1; white-space: pre-line; }
+        .banner-salary { font-size: 22px; font-weight: bold; color: #2ecc71; }
+        .banner-info { font-size: 14px; color: #ff9ff3; margin-top: 5px; }
+
+        #control-panel { padding: 10px; background: #34495e; position: relative; }
+        .tower-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
+        .tower-btn {
+            background: #2c3e50; border: 2px solid transparent; border-radius: 8px;
+            color: white; padding: 4px; cursor: pointer; text-align: center; transition: 0.2s; position: relative;
+        }
+        .tower-btn.selected { border-color: #f1c40f; background: #3b536b; transform: scale(0.95); }
+        .tower-btn.upgrade-btn { background: #8e44ad; border-color: #9b59b6; }
+        .tower-btn.upgrade-btn:hover { background: #9b59b6; }
+        .tower-btn .emoji { font-size: 20px; }
+        .tower-btn .name { font-size: 10px; margin-top: 2px; }
+        .tower-btn .cost { font-size: 12px; color: #f1c40f; font-weight: bold; }
+        .tower-btn .bonus { font-size: 9px; color: #ff9ff3; margin-top: 2px; }
+
+        #btn-skill {
+            flex-grow: 1; padding: 12px; font-size: 16px; font-weight: bold;
+            background-color: #e74c3c; color: #fff; border: none; border-radius: 8px;
+            cursor: pointer; position: relative; overflow: hidden;
+        }
+        #btn-skill:disabled { background-color: #555; color: #888; cursor: not-allowed; }
+        #skill-progress {
+            position: absolute; left: 0; top: 0; height: 100%; background-color: rgba(255, 255, 255, 0.3); 
+            width: 0%; pointer-events: none; transition: width 0.1s;
+        }
+        
+        #btn-sound {
+            flex-shrink: 0; width: 50px; padding: 12px 0; font-size: 20px;
+            background-color: #34495e; border: 2px solid #576574; border-radius: 8px; 
+            cursor: pointer; color: white; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+        }
+        #btn-sound:hover { filter: brightness(1.2); }
+
+        .overlay-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 100;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .game-over-title { font-size: 32px; color: #e74c3c; font-weight: bold; margin-bottom: 10px; }
+        .game-over-subtitle { font-size: 18px; color: #ecf0f1; margin-bottom: 30px; text-align: center; line-height: 1.5; }
+        .btn-ad {
+            background: #2ecc71; color: white; padding: 15px 20px; border: none; border-radius: 8px;
+            font-size: 18px; font-weight: bold; cursor: pointer; margin-bottom: 15px; width: 80%;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4); animation: pulse 1.5s infinite;
+        }
+        .btn-restart {
+            background: #7f8c8d; color: white; padding: 12px 20px; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: bold; cursor: pointer; width: 80%;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        
+        .ad-playing-text { font-size: 24px; color: #f1c40f; margin-bottom: 20px; font-weight: bold; text-align: center;}
+        .ad-timer { font-size: 48px; font-weight: bold; color: white; }
+
+        .modal-box {
+            background: #2c3e50; border: 2px solid #f1c40f; border-radius: 12px;
+            width: 85%; padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center;
+        }
+        .rank-title { font-size: 24px; font-weight: bold; color: #f1c40f; margin-bottom: 15px; }
+        .rank-list { width: 100%; text-align: left; margin-bottom: 20px; max-height: 300px; overflow-y: auto; }
+        .rank-item { 
+            display: flex; justify-content: space-between; padding: 10px 5px; 
+            border-bottom: 1px solid #576574; font-size: 16px; 
+        }
+        .rank-item.top3 { color: #f1c40f; font-weight: bold; }
+        .rank-item .name { flex: 1; margin-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .rank-item .score { color: #2ecc71; font-weight: bold; }
+        
+        .input-nickname {
+            width: 90%; padding: 10px; font-size: 18px; border-radius: 8px; border: none;
+            margin-bottom: 15px; text-align: center; outline: none;
+        }
+        .btn-submit {
+            background: #e74c3c; color: white; padding: 12px 20px; border: none; border-radius: 8px;
+            font-size: 18px; font-weight: bold; cursor: pointer; width: 100%;
+        }
+        .loading-text { font-size: 18px; color: #ecf0f1; margin: 20px 0; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        .seo-section {
+            width: 90%; max-width: 400px; margin: 40px auto 20px auto; 
+            padding: 20px; background: #1a1a1a; border-radius: 12px; box-sizing: border-box;
+            color: #95a5a6; font-size: 13px; line-height: 1.6; text-align: left;
+            border: 1px solid #34495e; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            max-height: 200px; overflow-y: auto;
+        }
+        .seo-section h2, .seo-section h3 { color: #f1c40f; border-bottom: 1px solid #34495e; padding-bottom: 5px; margin-top: 15px; }
+        .seo-section p { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <div id="start-screen">
+        <div class="start-emoji" onclick="showAdminStats()" style="cursor:pointer;">💸🛡️💳</div>
+        <div class="start-title">Payday Panic</div>
+        <div class="start-subtitle">통장 사수 작전</div>
+        <div class="play-count-badge" id="play-count-badge">🔥 누적 플레이: 로딩중...</div>
+        
+        <div class="lang-btns">
+            <div style="display: flex; gap: 8px;">
+                <button id="btn-start-sound" class="btn-lang" style="flex: 1; font-size: 14px; padding: 10px; background: #e74c3c; border-color: #c0392b;" onclick="toggleSound()">🔇 Sound</button>
+                <button class="btn-lang" style="flex: 1; font-size: 14px; padding: 10px; background: #8e44ad; border-color: #9b59b6;" onclick="showHowToPlay()">📖 How to Play</button>
+            </div>
+            
+            <button class="btn-lang" onclick="startGame('ko')">🇰🇷 한국어 (KR)</button>
+            <button class="btn-lang" onclick="startGame('en')">🇺🇸 English (US)</button>
+            <button class="btn-lang rank-btn" onclick="showLeaderboard(false)">🏆 명예의 전당 (Top 10)</button>
+        </div>
+    </div>
+
+    <div id="status-bar">
+        <div class="month-text" id="ui-month">🗓️ Month 1</div>
+        <div class="gold-text" id="ui-gold">💳 잔고: 150 G</div>
+    </div>
+    
+    <canvas id="gameCanvas" width="400" height="550"></canvas>
+    <div id="message-board"><div id="skill-msg" class="msg-text"></div></div>
+
+    <div id="month-banner">
+        <div class="banner-title" id="banner-title"></div>
+        <div class="banner-salary" id="banner-salary"></div>
+        <div class="banner-info" id="banner-info"></div>
+    </div>
+    
+    <div id="tutorial-tooltip"></div>
+
+    <div id="control-panel">
+        <div class="tower-grid" id="tower-menu"></div>
+        <div style="display: flex; gap: 10px; width: 100%;">
+            <button id="btn-sound" onclick="toggleSound()" title="Sound On/Off">🔇</button>
+            <button id="btn-skill" onclick="useSkill()" disabled>
+                <div id="skill-progress"></div>
+                <span id="ui-skill-btn">Flash Sale!</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="how-to-play-screen" class="overlay-screen" style="z-index: 300;">
+        <div class="modal-box" style="text-align: left; width: 85%; max-width: 350px;">
+            <div class="rank-title" style="text-align: center;">📖 How to Play</div>
+            <div style="font-size: 14px; color: #ecf0f1; line-height: 1.6; margin-bottom: 20px; max-height: 50vh; overflow-y: auto; padding-right: 5px;">
+                <b>🇰🇷 한국어</b><br>
+                1. <b>타워 설치:</b> 하단 메뉴에서 타워를 선택해 빈 땅에 배치하세요.<br>
+                2. <b>상성 공격:</b> 타워별로 특정 몬스터에게 <b>2배의 피해</b>를 줍니다.<br>
+                3. <b>보스 웨이브:</b> 6개월 단위로 거대한 지출 보스가 등장합니다!<br>
+                4. <b>스킬:</b> 우측 하단 게이지가 차면 전체 몬스터의 체력을 깎는 할인이 발동됩니다.<br>
+                <hr style="border-color: #576574; margin: 15px 0;">
+                <b>🇺🇸 English</b><br>
+                1. <b>Build:</b> Select a tower and place it on empty land.<br>
+                2. <b>Critical Hit:</b> Each tower deals <b>2x damage</b> to a specific monster.<br>
+                3. <b>Boss Waves:</b> A giant boss appears every 6 months!<br>
+                4. <b>Skill:</b> Use the full gauge to instantly reduce all monsters' HP.
+            </div>
+            <button class="btn-restart" style="width: 100%;" onclick="closeHowToPlay()">Close</button>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="overlay-screen">
+        <div class="game-over-title" id="go-title">💸 파산했습니다!</div>
+        <div class="game-over-subtitle" id="go-sub"></div>
+        <button class="btn-ad" id="btn-ad" onclick="watchAdToRevive()">📺 스폰서 광고 보고 긴급수혈 ({g}G)</button>
+        <button class="btn-restart" id="btn-giveup" onclick="giveUpGame()">🏳️ 포기하고 결과 보기</button>
+    </div>
+
+    <div id="ad-screen" class="overlay-screen">
+        <div class="ad-playing-text" id="ad-text"></div>
+        <div class="ad-timer" id="ad-timer-text">3</div>
+    </div>
+
+    <div id="score-submit-screen" class="overlay-screen" style="z-index: 250;">
+        <div class="modal-box">
+            <div class="rank-title" id="top10-title">🎉 TOP 10 진입! 🎉</div>
+            <div style="color:#ecf0f1; margin-bottom:15px; font-size:14px;" id="submit-desc"></div>
+            <input type="text" id="nickname-input" class="input-nickname" placeholder="닉네임 (Max 10자)" maxlength="10">
+            <button class="btn-submit" id="btn-submit-score" onclick="submitScore()">🏆 기록 등록하기</button>
+        </div>
+    </div>
+
+    <div id="leaderboard-screen" class="overlay-screen" style="z-index: 300;">
+        <div class="modal-box">
+            <div class="rank-title" id="lb-title">🏆 명예의 전당 Top 10 🏆</div>
+            <div id="rank-loading" class="loading-text">데이터 불러오는 중...</div>
+            <div id="rank-list-container" class="rank-list"></div>
+            <button class="btn-restart" id="btn-close-rank" onclick="closeLeaderboard()">닫기</button>
+        </div>
+    </div>
+</div>
+
+<div class="seo-section">
+    <article>
+        <h2>About Payday Panic</h2>
+        <p><strong>Payday Panic</strong> is a free-to-play hyper-casual strategy web game where players protect their personal savings from everyday tempting expenses. Defend your bank account against coffee, taxi rides, food deliveries, and expensive rent using frugal savings towers!</p>
+        <h3>📜 Privacy Policy & Terms of Service</h3>
+        <p><strong>1. Privacy Policy:</strong> We respect your privacy. This web game does not collect any personally identifiable information (PII). Game progress is temporarily handled within your browser session.</p>
+        <p><strong>2. Terms of Use:</strong> By playing Payday Panic, you agree to play fairly. Unauthorized distribution or modification of this game's code is prohibited.</p>
+        <p style="text-align: center; margin-top: 20px;">
+            &copy; 2026 Payday Panic Developer. All rights reserved.
+        </p>
+    </article>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, serverTimestamp, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCtdbj_EwZ-FTiEvEyfDGmgD1XBUh8w6fw",
+      authDomain: "payday-panic.firebaseapp.com",
+      projectId: "payday-panic",
+      storageBucket: "payday-panic.firebasestorage.app",
+      messagingSenderId: "258318893188",
+      appId: "1:258318893188:web:8a51e109990179d61202d1"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    window.db = getFirestore(app);
+    
+    window.collection = collection; window.addDoc = addDoc; window.getDocs = getDocs; 
+    window.query = query; window.orderBy = orderBy; window.limit = limit; window.serverTimestamp = serverTimestamp;
+    window.doc = doc; window.getDoc = getDoc; window.setDoc = setDoc; 
+    window.updateDoc = updateDoc; window.increment = increment;
+
+    async function loadPlayCount() {
+        try {
+            const statsRef = window.doc(window.db, "stats", "global");
+            const snap = await window.getDoc(statsRef);
+            if (snap.exists()) {
+                const count = snap.data().playCount || 0;
+                document.getElementById('play-count-badge').innerText = `🔥 누적 플레이: ${count.toLocaleString()}회`;
+            } else {
+                document.getElementById('play-count-badge').innerText = `🔥 누적 플레이: 0회`;
+            }
+        } catch(e) {
+            console.error(e);
+            document.getElementById('play-count-badge').style.display = 'none';
+        }
+    }
+    loadPlayCount();
+</script>
+
+<script>
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    let soundEnabled = false; 
+    
+    window.toggleSound = function() {
+        soundEnabled = !soundEnabled;
+        
+        document.getElementById('btn-sound').innerText = soundEnabled ? '🔊' : '🔇';
+        
+        const startBtn = document.getElementById('btn-start-sound');
+        if(startBtn) {
+            startBtn.innerText = soundEnabled ? '🔊 Sound' : '🔇 Sound';
+            startBtn.style.background = soundEnabled ? '#27ae60' : '#e74c3c';
+            startBtn.style.borderColor = soundEnabled ? '#2ecc71' : '#c0392b';
+        }
+
+        if (soundEnabled && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    };
+
+    window.showHowToPlay = function() {
+        document.getElementById('how-to-play-screen').style.display = 'flex';
+    };
+    window.closeHowToPlay = function() {
+        document.getElementById('how-to-play-screen').style.display = 'none';
+    };
+
+    function playSound(type) {
+        if (!soundEnabled || audioCtx.state === 'suspended') return;
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        const now = audioCtx.currentTime;
+        
+        if (type === 'shoot') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.start(now); osc.stop(now + 0.05);
+        } else if (type === 'hit') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, now);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.start(now); osc.stop(now + 0.05);
+        } else if (type === 'kill') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, now);
+            osc.frequency.setValueAtTime(600, now + 0.1);
+            gain.gain.setValueAtTime(0.05, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'build') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.setValueAtTime(450, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'error') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.setValueAtTime(100, now + 0.1);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.2);
+            osc.start(now); osc.stop(now + 0.2);
+        } else if (type === 'upgrade') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.3);
+            gain.gain.setValueAtTime(0.1, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.3);
+            osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'gameover') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(250, now);
+            osc.frequency.exponentialRampToValueAtTime(50, now + 1);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.linearRampToValueAtTime(0, now + 1);
+            osc.start(now); osc.stop(now + 1);
+        } else if (type === 'boss_alert') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.setValueAtTime(200, now + 0.2);
+            osc.frequency.setValueAtTime(150, now + 0.4);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.linearRampToValueAtTime(0, now + 0.6);
+            osc.start(now); osc.stop(now + 0.6);
+        }
+    }
+
+    const LANG = {
+        ko: {
+            balance: "💳 잔고: ", month: "🗓️ Month ", skillBtn: "Flash Sale! (스킬 게이지)", vs: "vs ",
+            shortage: "잔고가 부족합니다!", critical: "상성x2!",
+            gameover_title: "💸 파산했습니다!", gameover_sub: "버틴 기간: Month {m}<br>지갑이 텅 비었습니다.",
+            btn_ad: "📺 긴급 대출 받기 ({g}G)", btn_giveup: "🏳️ 포기하고 결과 보기", btn_check_rank: "📊 최종 순위 확인",
+            ad_text: "스폰서 대출 심사 중...<br>(광고 연동 대기열 ⏳)", ad_done: "📺 심사 완료!\n💰 {g}G 입금!",
+            reset_done: "게임이 초기화되었습니다.\n다시 짠테크를 시작합니다!",
+            month_start: "🗓️ Month {m} 시작!", salary_in: "💰 월급 +{s}G 입금", inflation_info: "📈 물가상승 +20% / 📈 임금상승 +15%",
+            t_piggy: "돼지저금통", t_coffee: "커피머신", t_transit: "교통카드", t_meal: "도시락", t_vault: "황금금고",
+            m_coffee: "커피값", m_taxi: "택시비", m_delivery: "배달음식", m_impulse: "충동구매", m_rent: "월세",
+            b_luxury: "명품 지름신", b_car: "자동차 할부", b_tax: "세금 폭탄",
+            btn_close: "닫기", btn_play_again: "↻ 다시 플레이", alert_badword: "⚠️ 불건전한 단어가 포함되어 있습니다. 바르고 고운 말을 써주세요!",
+            submit_desc_rank: "버틴 기간: <b>Month {m}</b><br>명예의 전당에 기록할 닉네임을 적어주세요!",
+            input_placeholder: "닉네임 (Max 10자)", btn_submit_score: "🏆 기록 등록하기", top10_title: "🎉 TOP 10 진입! 🎉",
+            lb_title: "🏆 명예의 전당 Top 10 🏆", t_upgrade: "타워 업그레이드", msg_upgraded: "업그레이드 완료!",
+            tutorial_msg: "👆 타워를 선택하고 빈 땅에 배치하세요!"
+        },
+        en: {
+            balance: "💳 Balance: ", month: "🗓️ Month ", skillBtn: "Flash Sale! (Gauge)", vs: "vs ",
+            shortage: "Not enough balance!", critical: "Crit x2!",
+            gameover_title: "💸 Bankrupt!", gameover_sub: "Survived: Month {m}<br>Your wallet is empty.",
+            btn_ad: "📺 Get Emergency Loan ({g}G)", btn_giveup: "🏳️ Give Up & Check Rank", btn_check_rank: "📊 View Final Rank",
+            ad_text: "Sponsor Loan in progress...<br>(Ad Integration queue ⏳)", ad_done: "📺 Approved!\n💰 {g}G deposited!",
+            reset_done: "Game Reset.\nStart saving again!",
+            month_start: "🗓️ Month {m} Starts!", salary_in: "💰 Salary +{s}G Deposited", inflation_info: "📈 Inflation +20% / 📈 Wage +15%",
+            t_piggy: "Piggy Bank", t_coffee: "Coffee Maker", t_transit: "Transit Pass", t_meal: "Meal Prep", t_vault: "Gold Vault",
+            m_coffee: "Coffee", m_taxi: "Taxi", m_delivery: "Delivery", m_impulse: "Impulse Buy", m_rent: "Rent",
+            b_luxury: "Luxury Haul", b_car: "Car Loan", b_tax: "Tax Bomb",
+            btn_close: "Close", btn_play_again: "↻ Play Again", alert_badword: "⚠️ Inappropriate words detected. Please use a clean nickname!",
+            submit_desc_rank: "Survived: <b>Month {m}</b><br>Enter your nickname for the Hall of Fame!",
+            input_placeholder: "Nickname (Max 10)", btn_submit_score: "🏆 Submit Score", top10_title: "🎉 TOP 10 Reached! 🎉",
+            lb_title: "🏆 Hall of Fame Top 10 🏆", t_upgrade: "Upgrade Towers", msg_upgraded: "Upgraded!",
+            tutorial_msg: "👆 Select a tower and place it on empty land!"
+        }
+    };
+
+    let lang = 'ko'; 
+    function t(key) { return LANG[lang][key] || key; } 
+
+    function resizeGame() {
+        const wrapper = document.getElementById('game-wrapper');
+        const scale = Math.min(window.innerWidth / 400, window.innerHeight / (wrapper.offsetHeight || 780), 1.2); 
+        wrapper.style.transform = `scale(${scale * 0.95})`;
+    }
+    window.addEventListener('resize', resizeGame);
+    setTimeout(resizeGame, 50);
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const CELL = 50, COLS = 8, ROWS = 11;
+    const INFLATION_RATE = 1.20, WAGE_GROWTH = 1.15, BASE_SALARY = 150;
+
+    let state = { 
+        gold: 150, month: 1, skillGauge: 0, 
+        monstersCleared: 0, monstersSpawnedThisMonth: 0, 
+        selectedTowerId: null, gameOver: false, isTransitioning: false, 
+        adUsed: false, upgradeLevel: 0, pendingAdReward: 0, tutorialDone: false, 
+        sessionStartTime: 0, adminClicks: 0 
+    };
+
+    let animationId = null;
+    let lastTime = 0;
+    let isRankFromGameOver = false;
+
+    const TOWER_DATA = [
+        { id: 't_piggy', emoji: '🐷', cost: 20, damage: 10, cooldown: 60, range: 120, proj: '🪙', maxAmmo: 35, bonusTargetId: 'm_impulse' },
+        { id: 't_coffee', emoji: '☕', cost: 50, damage: 25, cooldown: 35, range: 140, proj: '🫘', maxAmmo: 50, bonusTargetId: 'm_coffee' },
+        { id: 't_transit', emoji: '🎟️', cost: 120, damage: 65, cooldown: 40, range: 160, proj: '💳', maxAmmo: 60, bonusTargetId: 'm_taxi' },
+        { id: 't_meal', emoji: '🥗', cost: 300, damage: 160, cooldown: 30, range: 160, proj: '🥦', maxAmmo: 70, bonusTargetId: 'm_delivery' },
+        { id: 't_vault', emoji: '🏦', cost: 700, damage: 450, cooldown: 60, range: 200, proj: '💰', maxAmmo: 40, bonusTargetId: 'm_rent' } 
+    ];
+
+    function getTowerData(id) {
+        const base = TOWER_DATA.find(t => t.id === id);
+        const costMulti = Math.pow(1.3, state.upgradeLevel);
+        const dmgMulti = Math.pow(1.4, state.upgradeLevel);
+        return {
+            ...base,
+            cost: Math.floor(base.cost * costMulti),
+            damage: Math.floor(base.damage * dmgMulti)
+        };
+    }
+
+    function getUpgradeCost() {
+        return Math.floor(200 * Math.pow(1.5, state.upgradeLevel)); 
+    }
+
+    const MONSTER_TYPES = [
+        { id: 'm_impulse', emoji: '👗', basePenalty: 15, baseHp: 80, speed: 1.1, minMonth: 1 },    
+        { id: 'm_coffee', emoji: '☕', basePenalty: 30, baseHp: 160, speed: 0.9, minMonth: 1 },     
+        { id: 'm_taxi', emoji: '🚕', basePenalty: 50, baseHp: 320, speed: 0.8, minMonth: 2 },       
+        { id: 'm_delivery', emoji: '🍕', basePenalty: 100, baseHp: 600, speed: 0.7, minMonth: 3 },  
+        { id: 'm_rent', emoji: '🏠', basePenalty: 250, baseHp: 1200, speed: 0.5, minMonth: 4 }      
+    ];
+
+    const BOSS_TYPES = [
+        { id: 'b_luxury', emoji: '👜', basePenalty: 1000, baseHp: 3000, speed: 0.4 },
+        { id: 'b_car', emoji: '🚗', basePenalty: 3000, baseHp: 8000, speed: 0.5 },
+        { id: 'b_tax', emoji: '🧾', basePenalty: 10000, baseHp: 20000, speed: 0.6 }
+    ];
+
+    const WAYPOINTS = [{c: 0, r: 1}, {c: 6, r: 1}, {c: 6, r: 4}, {c: 1, r: 4}, {c: 1, r: 7}, {c: 6, r: 7}, {c: 6, r: 10}, {c: 8, r: 10}];
+    const pathPixels = WAYPOINTS.map(wp => ({ x: wp.c * CELL + CELL/2, y: wp.r * CELL + CELL/2 }));
+    let pathCells = new Set();
+    for (let i = 0; i < WAYPOINTS.length - 1; i++) {
+        let p1 = WAYPOINTS[i], p2 = WAYPOINTS[i+1];
+        let dc = Math.sign(p2.c - p1.c), dr = Math.sign(p2.r - p1.r);
+        let c = p1.c, r = p1.r; pathCells.add(`${c},${r}`);
+        while (c !== p2.c || r !== p2.r) { c += dc; r += dr; pathCells.add(`${c},${r}`); }
+    }
+
+    let towers = [], monsters = [], projectiles = [], floatingTexts = [], frame = 0;
+
+    class FloatingText {
+        constructor(x, y, text, color, size = 12) {
+            this.x = x + (Math.random()*20 - 10); this.y = y; this.text = text; this.color = color; this.size = size; this.life = 30;
+        }
+        draw() {
+            ctx.globalAlpha = this.life / 30; ctx.font = `bold ${this.size}px Arial`; ctx.fillStyle = this.color;
+            ctx.textAlign = 'center'; ctx.fillText(this.text, this.x, this.y); ctx.globalAlpha = 1.0;
+        }
+        update() { this.y -= 1; this.life--; }
+    }
+
+    class Monster {
+        constructor() {
+            this.x = pathPixels[0].x - CELL; this.y = pathPixels[0].y; this.wpIndex = 0;
+            this.isBoss = (state.month % 6 === 0);
+            
+            if (this.isBoss) {
+                let bossIdx = Math.floor((state.month - 1) / 6); 
+                const type = BOSS_TYPES[Math.min(bossIdx, BOSS_TYPES.length - 1)];
+                this.id = type.id; this.emoji = type.emoji; 
+                this.basePenalty = type.basePenalty;
+                this.maxHp = Math.floor(type.baseHp * Math.pow(1.15, state.month - 6));
+                this.hp = this.maxHp;
+                this.reward = Math.floor(type.basePenalty * 0.5); 
+                this.speed = type.speed;
+            } else {
+                const availableTypes = MONSTER_TYPES.filter(m => m.minMonth <= state.month);
+                const type = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+                
+                this.id = type.id; this.emoji = type.emoji; this.basePenalty = type.basePenalty;
+                this.maxHp = type.baseHp * Math.pow(INFLATION_RATE, state.month - 1);
+                this.hp = this.maxHp;
+                this.reward = Math.max(1, Math.floor((type.basePenalty * 0.15) * Math.pow(1.05, state.month - 1)));
+                this.speed = type.speed + (state.month * 0.05);
+            }
+            this.isDead = false;
+        }
+        draw() {
+            const hpPercent = Math.max(0, this.hp / this.maxHp);
+            
+            if (this.isBoss) {
+                ctx.fillStyle = '#ff4757'; ctx.fillRect(this.x - 25, this.y - 40, 50 * hpPercent, 6);
+                ctx.font = 'bold 14px Arial'; ctx.fillStyle = '#ff9ff3'; ctx.textAlign = 'center'; ctx.fillText(t(this.id), this.x, this.y - 50);
+                ctx.font = '50px Arial'; ctx.textBaseline = 'middle'; ctx.fillText(this.emoji, this.x, this.y);
+            } else {
+                ctx.fillStyle = '#ff4757'; ctx.fillRect(this.x - 15, this.y - 25, 30 * hpPercent, 4);
+                ctx.font = '10px Arial'; ctx.fillStyle = '#ff9ff3'; ctx.textAlign = 'center'; ctx.fillText(t(this.id), this.x, this.y - 32);
+                ctx.font = '24px Arial'; ctx.textBaseline = 'middle'; ctx.fillText(this.emoji, this.x, this.y);
+            }
+        }
+        update() {
+            if (this.wpIndex >= pathPixels.length) return;
+            const target = pathPixels[this.wpIndex];
+            const dist = Math.hypot(target.x - this.x, target.y - this.y);
+
+            if (dist < this.speed) {
+                this.x = target.x; this.y = target.y; this.wpIndex++;
+                if (this.wpIndex >= pathPixels.length && !this.isDead) {
+                    this.isDead = true;
+                    state.gold -= Math.floor(this.basePenalty * Math.pow(INFLATION_RATE, state.month - 1));
+                    state.monstersCleared++; 
+                    updateUI();
+                    
+                    if (state.gold < 0) {
+                        triggerGameOver();
+                    } else {
+                        checkMonthUp(); 
+                    }
+                }
+            } else { this.x += ((target.x - this.x) / dist) * this.speed; this.y += ((target.y - this.y) / dist) * this.speed; }
+        }
+    }
+
+    class Projectile {
+        constructor(x, y, target, damage, emoji, bonusTargetId) {
+            this.x = x; this.y = y; this.target = target;
+            this.damage = damage; this.emoji = emoji; this.bonusTargetId = bonusTargetId;
+            this.speed = 12; this.isDead = false;
+        }
+        draw() { ctx.font = '16px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(this.emoji, this.x, this.y); }
+        update() {
+            if (this.target.isDead) { this.isDead = true; return; }
+            const dist = Math.hypot(this.target.x - this.x, this.target.y - this.y);
+
+            if (dist < 15) {
+                let isCritical = (this.target.id === this.bonusTargetId);
+                let finalDamage = isCritical ? this.damage * 2 : this.damage;
+
+                this.target.hp -= finalDamage; addSkillGauge(1.5); this.isDead = true;
+                playSound('hit');
+
+                if (isCritical) floatingTexts.push(new FloatingText(this.target.x, this.target.y - 20, t('critical'), "#ff9ff3", 16));
+
+                if (this.target.hp <= 0 && !this.target.isDead) {
+                    this.target.isDead = true; 
+                    state.gold += this.target.reward; 
+                    state.monstersCleared++; 
+                    playSound('kill');
+                    floatingTexts.push(new FloatingText(this.target.x, this.target.y, `+${this.target.reward}G`, "#f1c40f"));
+                    checkMonthUp(); 
+                    updateUI();
+                }
+            } else { this.x += ((this.target.x - this.x) / dist) * this.speed; this.y += ((this.target.y - this.y) / dist) * this.speed; }
+        }
+    }
+
+    async function recordSessionStats() {
+        if (!window.db || !window.doc || !window.updateDoc || !window.increment) return;
+        
+        const playTimeSec = Math.floor((Date.now() - state.sessionStartTime) / 1000);
+        const isNewPlayer = !localStorage.getItem('sd_played');
+        const isRetry = sessionStorage.getItem('sd_retry') === 'true';
+
+        let updates = {
+            playCount: window.increment(1),
+            totalPlayTime: window.increment(playTimeSec)
+        };
+        
+        if (isNewPlayer) {
+            updates.uniquePlayers = window.increment(1);
+            localStorage.setItem('sd_played', 'true');
+        }
+        if (isRetry) {
+            updates.retryCount = window.increment(1);
+        }
+
+        const statsRef = window.doc(window.db, "stats", "global");
+        try {
+            await window.updateDoc(statsRef, updates);
+        } catch (e) {
+            try { await window.setDoc(statsRef, { playCount: 1, totalPlayTime: playTimeSec, uniquePlayers: 1, retryCount: 0 }); } 
+            catch (err) { }
+        }
+        
+        sessionStorage.setItem('sd_retry', 'true');
+    }
+
+    window.showAdminStats = async function() {
+        state.adminClicks++;
+        if (state.adminClicks >= 5) {
+            state.adminClicks = 0;
+            try {
+                const snap = await window.getDoc(window.doc(window.db, "stats", "global"));
+                if(snap.exists()) {
+                    const d = snap.data();
+                    const plays = d.playCount || 0;
+                    const unique = d.uniquePlayers || 1;
+                    const time = d.totalPlayTime || 0;
+                    const retries = d.retryCount || 0;
+
+                    const avgTimeSec = plays > 0 ? Math.floor(time / plays) : 0;
+                    const min = Math.floor(avgTimeSec / 60);
+                    const sec = avgTimeSec % 60;
+                    const retention = unique > 0 ? ((retries / unique) * 100).toFixed(1) : 0;
+
+                    alert(`📊 [Dashboard]\n\nPlayers: ${unique}\nTotal Plays: ${plays}\nRetries: ${retries}\n\nAvg Time: ${min}m ${sec}s\nRetention: ${retention}%`);
+                } 
+            } catch (e) { }
+        }
+    };
+
+    window.startGame = function(selectedLang) {
+        if (soundEnabled && audioCtx.state === 'suspended') audioCtx.resume();
+        lang = selectedLang;
+        document.getElementById('start-screen').style.display = 'none'; 
+        
+        document.getElementById('ui-skill-btn').innerText = t('skillBtn');
+        document.getElementById('go-title').innerText = t('gameover_title');
+        document.getElementById('ad-text').innerHTML = t('ad_text');
+        document.getElementById('top10-title').innerText = t('top10_title');
+        document.getElementById('nickname-input').placeholder = t('input_placeholder');
+        document.getElementById('btn-submit-score').innerText = t('btn_submit_score');
+        document.getElementById('lb-title').innerText = t('lb_title');
+
+        state.sessionStartTime = Date.now();
+
+        initUI(); 
+        updateUI(); 
+
+        if (!state.tutorialDone) {
+            const tooltip = document.getElementById('tutorial-tooltip');
+            tooltip.innerText = t('tutorial_msg');
+            tooltip.style.display = 'block';
+        }
+        
+        if (animationId) cancelAnimationFrame(animationId);
+        lastTime = performance.now();
+        animationId = requestAnimationFrame(loop); 
+    };
+
+    function triggerGameOver() {
+        if(state.gameOver) return;
+        state.gameOver = true;
+        playSound('gameover');
+        
+        recordSessionStats();
+
+        document.getElementById('go-sub').innerHTML = t('gameover_sub').replace('{m}', state.month);
+        
+        const btnAd = document.getElementById('btn-ad');
+        const btnGiveup = document.getElementById('btn-giveup');
+        
+        const currentSalary = Math.floor(BASE_SALARY * Math.pow(WAGE_GROWTH, state.month - 1));
+        const adRewardAmount = currentSalary * 3;
+        state.pendingAdReward = adRewardAmount;
+        
+        if(state.adUsed) {
+            btnAd.style.display = 'none'; 
+            btnGiveup.innerText = t('btn_check_rank'); 
+        } else {
+            btnAd.style.display = 'block';
+            btnAd.innerText = t('btn_ad').replace('{g}', adRewardAmount);
+            btnGiveup.innerText = t('btn_giveup');
+        }
+        
+        document.getElementById('game-over-screen').style.display = 'flex';
+    }
+
+    window.giveUpGame = async function() {
+        document.getElementById('game-over-screen').style.display = 'none';
+        
+        if (!window.db || !window.getDocs) {
+            showLeaderboard(true); 
+            return;
+        }
+
+        try {
+            const q = window.query(window.collection(window.db, "leaderboard"), 
+                window.orderBy("month", "desc"), window.orderBy("timestamp", "asc"), window.limit(10));
+            
+            const snapshot = await window.getDocs(q);
+            let count = 0;
+            let lowestMonth = 99999;
+
+            snapshot.forEach(doc => {
+                count++;
+                if (doc.data().month < lowestMonth) lowestMonth = doc.data().month;
+            });
+
+            if (count < 10 || state.month > lowestMonth) {
+                document.getElementById('submit-desc').innerHTML = t('submit_desc_rank').replace('{m}', state.month);
+                document.getElementById('score-submit-screen').style.display = 'flex';
+            } else {
+                showLeaderboard(true); 
+            }
+        } catch (error) {
+            showLeaderboard(true);
+        }
+    };
+
+    window.submitScore = async function() {
+        const nicknameInput = document.getElementById('nickname-input').value.trim();
+        let nickname = nicknameInput === "" ? "Guest" : nicknameInput;
+        
+        const lowerNick = nickname.toLowerCase();
+        const badWords = [
+            "시발", "씨발", "병신", "개새", "지랄", "애미", "느금", "섹스", "존나", "좆", "창녀", "걸레",
+            "fuck", "shit", "bitch", "asshole", "cunt", "dick", "pussy", "slut", "whore", "nigger"
+        ];
+        
+        const isBad = badWords.some(word => lowerNick.includes(word));
+        if (isBad) {
+            alert(t('alert_badword'));
+            playSound('error');
+            return; 
+        }
+
+        try {
+            await window.addDoc(window.collection(window.db, "leaderboard"), {
+                nickname: nickname,
+                month: state.month,
+                timestamp: window.serverTimestamp()
+            });
+        } catch(e) { }
+
+        document.getElementById('score-submit-screen').style.display = 'none';
+        showLeaderboard(true);
+    };
+
+    window.showLeaderboard = async function(fromGameOver = false) {
+        isRankFromGameOver = fromGameOver;
+        const btnClose = document.getElementById('btn-close-rank');
+        btnClose.innerText = fromGameOver ? t('btn_play_again') : t('btn_close');
+        
+        document.getElementById('lb-title').innerText = t('lb_title');
+
+        document.getElementById('leaderboard-screen').style.display = 'flex';
+        document.getElementById('rank-list-container').innerHTML = '';
+        document.getElementById('rank-loading').style.display = 'block';
+
+        if (!window.db) return; 
+
+        try {
+            const q = window.query(window.collection(window.db, "leaderboard"), 
+                window.orderBy("month", "desc"), window.orderBy("timestamp", "asc"), window.limit(10));
+            const snapshot = await window.getDocs(q);
+            
+            document.getElementById('rank-loading').style.display = 'none';
+            let rankHtml = '';
+            let rank = 1;
+
+            if (snapshot.empty) { rankHtml = `<div style="color:#bdc3c7; text-align:center;">No records yet!</div>`; }
+            else {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const topClass = rank <= 3 ? 'top3' : '';
+                    let trophy = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `[${rank}]`;
+                    
+                    rankHtml += `
+                        <div class="rank-item ${topClass}">
+                            <span>${trophy}</span>
+                            <span class="name">${data.nickname}</span>
+                            <span class="score">Month ${data.month}</span>
+                        </div>
+                    `;
+                    rank++;
+                });
+            }
+            document.getElementById('rank-list-container').innerHTML = rankHtml;
+        } catch(e) {
+            document.getElementById('rank-loading').innerText = "Data load failed 😢";
+        }
+    };
+
+    window.closeLeaderboard = function() {
+        document.getElementById('leaderboard-screen').style.display = 'none';
+        if (isRankFromGameOver) restartGame(); 
+    };
+
+    window.watchAdToRevive = function() {
+        document.getElementById('game-over-screen').style.display = 'none'; 
+        
+        document.getElementById('ad-screen').style.display = 'flex';
+        let timeLeft = 3; 
+        document.getElementById('ad-timer-text').innerText = timeLeft;
+        
+        let adInterval = setInterval(() => {
+            timeLeft--; 
+            document.getElementById('ad-timer-text').innerText = timeLeft;
+            if (timeLeft <= 0) { 
+                clearInterval(adInterval); 
+                document.getElementById('ad-screen').style.display = 'none'; 
+                reviveGame(); 
+            }
+        }, 1000);
+    };
+
+    function reviveGame() {
+        state.gold = Math.max(0, state.gold) + state.pendingAdReward; 
+        state.gameOver = false; 
+        state.adUsed = true; 
+        state.sessionStartTime = Date.now();
+        
+        state.monstersSpawnedThisMonth = state.monstersCleared;
+        
+        monsters = []; projectiles = []; updateUI();
+        
+        playSound('upgrade');
+        showMessage(t('ad_done').replace('{g}', state.pendingAdReward), "msg-mid"); 
+        
+        if (animationId) cancelAnimationFrame(animationId);
+        lastTime = performance.now();
+        animationId = requestAnimationFrame(loop);
+    }
+
+    function restartGame() {
+        state = { 
+            gold: 150, month: 1, skillGauge: 0, 
+            monstersCleared: 0, monstersSpawnedThisMonth: 0, 
+            selectedTowerId: null, gameOver: false, isTransitioning: false, 
+            adUsed: false, upgradeLevel: 0, pendingAdReward: 0, tutorialDone: true, 
+            sessionStartTime: Date.now(), adminClicks: 0 
+        }; 
+        towers = []; monsters = []; projectiles = []; floatingTexts = []; frame = 0;
+        
+        document.getElementById('skill-progress').style.width = '0%'; 
+        document.getElementById('btn-skill').disabled = true;
+        document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
+        
+        initUI(); 
+        updateUI(); showMessage(t('reset_done'), "msg-mid"); 
+
+        if (animationId) cancelAnimationFrame(animationId);
+        lastTime = performance.now();
+        animationId = requestAnimationFrame(loop);
+    }
+
+    function initUI() {
+        const towerMenu = document.getElementById('tower-menu');
+        towerMenu.innerHTML = ''; 
+        
+        TOWER_DATA.forEach(baseData => {
+            const tData = getTowerData(baseData.id);
+            const btn = document.createElement('div');
+            btn.className = 'tower-btn' + (state.selectedTowerId === baseData.id ? ' selected' : '');
+            btn.innerHTML = `
+                <div class="emoji">${tData.emoji}</div>
+                <div class="name">${t(tData.id)}</div>
+                <div class="cost">${tData.cost}G</div>
+                <div class="bonus">${t('vs')}${t(tData.bonusTargetId)}</div>
+            `;
+            btn.onclick = () => selectTower(tData.id, btn);
+            towerMenu.appendChild(btn);
+        });
+
+        const upgCost = getUpgradeCost();
+        const upgBtn = document.createElement('div');
+        upgBtn.className = 'tower-btn upgrade-btn';
+        upgBtn.innerHTML = `
+            <div class="emoji">🔼</div>
+            <div class="name">${t('t_upgrade')}</div>
+            <div class="cost" style="color:#2ecc71;">${upgCost}G</div>
+            <div class="bonus">Lv.${state.upgradeLevel + 1}</div>
+        `;
+        upgBtn.onclick = () => doUpgrade();
+        towerMenu.appendChild(upgBtn);
+
+        setTimeout(resizeGame, 100);
+    }
+
+    window.doUpgrade = function() {
+        const cost = getUpgradeCost();
+        if (state.gold >= cost) {
+            state.gold -= cost;
+            state.upgradeLevel++;
+            playSound('upgrade');
+            updateUI();
+            initUI(); 
+            showMessage(t('msg_upgraded'), "msg-mid");
+        } else {
+            playSound('error');
+            showMessage(t('shortage'), "msg-tiny");
+        }
+    };
+
+    function selectTower(id, btnElement) {
+        state.selectedTowerId = id;
+        document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
+        btnElement.classList.add('selected');
+    }
+
+    function checkMonthUp() {
+        const isBossWave = state.month % 6 === 0;
+        const targetTotal = isBossWave ? 1 : 5 + (state.month * 3); 
+        
+        if (state.monstersCleared >= targetTotal && !state.isTransitioning) {
+            state.monstersCleared = 0; 
+            state.monstersSpawnedThisMonth = 0; 
+            state.isTransitioning = true; 
+            state.month++;
+            
+            const salary = Math.floor(BASE_SALARY * Math.pow(WAGE_GROWTH, state.month - 1));
+            state.gold += salary; updateUI();
+
+            const isNextMonthBoss = state.month % 6 === 0;
+            const bannerTitle = document.getElementById('banner-title');
+            
+            if (isNextMonthBoss) {
+                bannerTitle.innerText = `⚠️ BOSS WAVE ⚠️\nMonth ${state.month}`;
+                bannerTitle.style.color = '#e74c3c';
+                playSound('boss_alert');
+            } else {
+                bannerTitle.innerText = t('month_start').replace('{m}', state.month);
+                bannerTitle.style.color = '#ecf0f1';
+                playSound('upgrade');
+            }
+
+            document.getElementById('banner-salary').innerText = t('salary_in').replace('{s}', salary);
+            document.getElementById('banner-info').innerText = t('inflation_info');
+
+            const monthBanner = document.getElementById('month-banner');
+            monthBanner.style.display = 'flex';
+            setTimeout(() => { monthBanner.style.display = 'none'; state.isTransitioning = false; }, 3000);
+        }
+    }
+
+    function addSkillGauge(amount) {
+        if (state.skillGauge >= 100) return;
+        state.skillGauge = Math.min(100, state.skillGauge + amount);
+        document.getElementById('skill-progress').style.width = `${state.skillGauge}%`;
+        if (state.skillGauge >= 100) document.getElementById('btn-skill').disabled = false;
+    }
+
+    window.useSkill = function() {
+        if (state.skillGauge < 100) return;
+        state.skillGauge = 0; document.getElementById('skill-progress').style.width = '0%'; 
+        document.getElementById('btn-skill').disabled = true;
+
+        playSound('upgrade');
+
+        const rand = Math.random(); let discount = 0, styleClass = '', msg = '';
+        if (rand < 0.4) { discount = Math.floor(Math.random() * 10) + 20; msg = `Tiny Member Discount... -${discount}%`; styleClass = 'msg-tiny'; }
+        else if (rand < 0.8) { discount = Math.floor(Math.random() * 15) + 30; msg = `Season Off Sale! -${discount}%`; styleClass = 'msg-mid'; }
+        else { discount = Math.floor(Math.random() * 6) + 45; msg = `🔥BLACK FRIDAY ${discount}% OFF!🔥`; styleClass = 'msg-epic'; }
+
+        const multiplier = 1 - (discount / 100);
+        monsters.forEach(m => { if (!m.isDead) m.hp *= multiplier; });
+        showMessage(msg, styleClass);
+    }
+
+    function showMessage(text, className) {
+        const skillMsg = document.getElementById('skill-msg');
+        skillMsg.className = `msg-text ${className}`; skillMsg.innerText = text; skillMsg.style.opacity = 1;
+        setTimeout(() => { skillMsg.style.opacity = 0; }, 2000);
+    }
+
+    function updateUI() {
+        document.getElementById('ui-gold').innerText = t('balance') + state.gold + ' G';
+        document.getElementById('ui-month').innerText = t('month') + state.month;
+        document.getElementById('ui-gold').style.color = state.gold < 0 ? '#e74c3c' : '#f1c40f';
+    }
+
+    function handleInput(clientX, clientY) {
+        if (!state.selectedTowerId || state.gameOver) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = (clientX - rect.left) * (canvas.width / rect.width);
+        const y = (clientY - rect.top) * (canvas.height / rect.height);
+        
+        const col = Math.floor(x / CELL), row = Math.floor(y / CELL);
+        
+        if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+        if (pathCells.has(`${col},${row}`) || towers.some(t => t.c === col && t.r === row)) return;
+
+        const tData = getTowerData(state.selectedTowerId);
+        if (state.gold >= tData.cost) {
+            state.gold -= tData.cost;
+            towers.push({ c: col, r: row, x: col * CELL + CELL/2, y: row * CELL + CELL/2, id: tData.id, timer: 0, ammo: tData.maxAmmo });
+            playSound('build');
+            updateUI();
+            
+            if (!state.tutorialDone) {
+                state.tutorialDone = true;
+                document.getElementById('tutorial-tooltip').style.display = 'none';
+            }
+        } else { 
+            playSound('error');
+            showMessage(t('shortage'), "msg-tiny"); 
+        }
+    }
+
+    canvas.addEventListener('mousedown', e => handleInput(e.clientX, e.clientY));
+    canvas.addEventListener('touchstart', e => { e.preventDefault(); handleInput(e.touches[0].clientX, e.touches[0].clientY); }, { passive: false });
+
+    function drawMap() {
+        ctx.strokeStyle = '#34495e'; ctx.lineWidth = 1;
+        for(let r=0; r<ROWS; r++) for(let c=0; c<COLS; c++) ctx.strokeRect(c*CELL, r*CELL, CELL, CELL);
+        ctx.fillStyle = '#222f3e'; pathCells.forEach(cell => { let [c, r] = cell.split(',').map(Number); ctx.fillRect(c*CELL, r*CELL, CELL, CELL); });
+        ctx.strokeStyle = '#576574'; ctx.lineWidth = 10; ctx.lineJoin = 'round'; ctx.beginPath();
+        ctx.moveTo(pathPixels[0].x, pathPixels[0].y);
+        for(let i=1; i<pathPixels.length; i++) ctx.lineTo(pathPixels[i].x, pathPixels[i].y);
+        ctx.stroke();
+    }
+
+    function loop(timestamp) {
+        if (state.gameOver) return;
+        animationId = requestAnimationFrame(loop);
+
+        if (!timestamp) timestamp = performance.now();
+        if (timestamp - lastTime < 15) return; 
+        lastTime = timestamp;
+
+        frame++; ctx.clearRect(0, 0, canvas.width, canvas.height); drawMap();
+
+        if (!state.isTransitioning) {
+            const isBossWave = state.month % 6 === 0;
+            
+            if (isBossWave) {
+                if (state.monstersSpawnedThisMonth < 1) {
+                    monsters.push(new Monster());
+                    state.monstersSpawnedThisMonth++;
+                }
+            } else {
+                const targetTotal = 5 + (state.month * 3);
+                if (state.monstersSpawnedThisMonth < targetTotal) {
+                    const spawnRate = Math.max(20, 85 - (state.month * 8)); 
+                    if (frame % Math.floor(spawnRate) === 0) {
+                        monsters.push(new Monster());
+                        state.monstersSpawnedThisMonth++;
+                    }
+                }
+            }
+        }
+
+        monsters = monsters.filter(m => !m.isDead);
+        monsters.forEach(m => { m.update(); m.draw(); });
+
+        towers = towers.filter(tower => tower.ammo > 0);
+        towers.forEach(tower => {
+            const tData = getTowerData(tower.id);
+
+            ctx.fillStyle = '#1e272e'; ctx.beginPath(); ctx.arc(tower.x, tower.y, CELL/2 - 5, 0, Math.PI*2); ctx.fill();
+            const ammoPercent = tower.ammo / tData.maxAmmo; ctx.beginPath();
+            ctx.arc(tower.x, tower.y, CELL/2 - 5, -Math.PI/2, -Math.PI/2 + (Math.PI * 2 * ammoPercent));
+            ctx.strokeStyle = ammoPercent > 0.3 ? '#2ecc71' : '#e74c3c'; ctx.lineWidth = 3; ctx.stroke();
+
+            ctx.font = '24px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(tData.emoji, tower.x, tower.y);
+            ctx.font = '9px Arial'; ctx.fillStyle = '#bdc3c7'; ctx.fillText(t(tData.id), tower.x, tower.y + 20); 
+
+            tower.timer++;
+            if (tower.timer >= tData.cooldown) {
+                let closest = null; let minDist = tData.range;
+                monsters.forEach(m => {
+                    const dist = Math.hypot(m.x - tower.x, m.y - tower.y);
+                    if (dist < minDist) { minDist = dist; closest = m; }
+                });
+                if (closest) { 
+                    projectiles.push(new Projectile(tower.x, tower.y, closest, tData.damage, tData.proj, tData.bonusTargetId)); 
+                    tower.timer = 0; tower.ammo--; 
+                    playSound('shoot'); 
+                }
+            }
+        });
+
+        projectiles = projectiles.filter(p => !p.isDead);
+        projectiles.forEach(p => { p.update(); p.draw(); });
+
+        floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+        floatingTexts.forEach(ft => { ft.update(); ft.draw(); });
+    }
+</script>
+
+</body>
+</html>
