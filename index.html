@@ -11,7 +11,7 @@
 
 <style>
 /* =====================================================================
-   PAYDAY PANIC v4.4 — "Receipt & Banknote"
+   PAYDAY PANIC v4.5 — "Receipt & Banknote"
    Board = banknote desk · Path = receipt tape · Exit = your wallet
    ===================================================================== */
 :root{
@@ -313,7 +313,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="tip"><canvas id="how2" width="192" height="192"></canvas><div><b class="tt">Match the colors</b><p>A tower hits 2× harder on the expense wearing its color. Price tags show what each one costs you. The vault hits an area.</p></div></div>
         <div class="tip"><canvas id="how3" width="192" height="192"></canvas><div><b class="tt">Merge three together</b><p>Put 3 identical towers next to each other, in a row or an L, and they merge into one ★ tower that hits 3× harder, with full ammo.</p></div></div>
         <div class="tip"><canvas id="how4" width="192" height="192"></canvas><div><b class="tt">Survive the bosses</b><p>Every 6th month a boss brings an escort. Fill the Flash sale bar by hitting enemies, then use it to cut every enemy's health.</p></div></div>
-        <div class="fine">Keys: 1–5 pick a tower · U upgrades · Space starts the month or uses Flash sale.<br>Progress is saved on this device only. No personal data is collected.</div>
+        <div class="fine">Keys: 1–5 pick a tower · U upgrades · Space starts the month or uses Flash sale.<br>Progress is saved on this device. The ranking keeps only the nickname you choose.</div>
       </div>
       <button class="btn" onclick="G.closeHow()">Got it</button>
     </div>
@@ -364,6 +364,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="h2" style="margin:6px 0">You made the top 10</div>
         <div class="go-sub" id="sub-d"></div>
         <input type="text" id="inp-nick" class="ninp" placeholder="Nickname" maxlength="10" autocomplete="off">
+        <div class="fine">Letters, numbers, spaces and . _ - only. Your nickname and months appear on a public ranking, so don't use your real name.</div>
       </div>
       <button class="btn" onclick="G.submitScore()">Save my score</button>
     </div>
@@ -1148,12 +1149,15 @@ async function checkTop10(){
     if(n<10||S.month>low){$('sub-d').textContent='You lasted '+S.month+' months. Pick a name for the board.';show('submit-screen');setTimeout(()=>$('inp-nick').focus(),50);}
     else G.showRank(true);}catch(e){G.showRank(true);}
 }
+// Same checks as firestore.rules (validNick, month 1–60 integer), so a rejected write never looks saved
+const NICK_RE=/^[A-Za-z0-9 ._-]{1,10}$/,NICK_BAD=['fuck','shit','bitch','asshole','nigger','cunt','dick','pussy'];
 G.submitScore=async()=>{
   const nick=($('inp-nick').value.trim()||'Guest').slice(0,10);
-  const bad=['fuck','shit','bitch','asshole','nigger','cunt','dick','pussy'];
-  if(bad.some(w=>nick.toLowerCase().includes(w))){Sound.play('error');$('sub-d').textContent='Please choose a different name.';return;}
-  try{await window.FB.addDoc(window.FB.collection(window.db,'leaderboard'),{nickname:nick,month:S.month,timestamp:window.FB.serverTimestamp()});}catch(e){}
-  hide('submit-screen');G.showRank(true);
+  if(!NICK_RE.test(nick)){Sound.play('error');$('sub-d').textContent='Use letters, numbers, spaces and . _ - only.';return;}
+  if(NICK_BAD.some(w=>nick.toLowerCase().includes(w))){Sound.play('error');$('sub-d').textContent='Please choose a different name.';return;}
+  let saved=true;
+  try{await window.FB.addDoc(window.FB.collection(window.db,'leaderboard'),{nickname:nick,month:Math.min(60,Math.max(1,Math.floor(S.month))),timestamp:window.FB.serverTimestamp()});}catch(e){saved=false;}
+  hide('submit-screen');G.showRank(true);if(!saved)showMsg('Could not save your score','bad');
 };
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 G.showRank=async(fromGO=false)=>{
