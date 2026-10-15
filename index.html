@@ -11,7 +11,7 @@
 
 <style>
 /* =====================================================================
-   PAYDAY PANIC v4.5 — "Receipt & Banknote"
+   PAYDAY PANIC v5.5 — "Receipt & Banknote"
    Board = banknote desk · Path = receipt tape · Exit = your wallet
    ===================================================================== */
 :root{
@@ -61,6 +61,7 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 #stage.land .where{display:flex;flex-direction:column;gap:3px}
 #stage.land .where b{font-size:16px;font-weight:900}
 #stage.land .where span{font-size:12px;color:var(--muted);font-weight:700}
+#stage.land .where em{font-style:normal;font-size:12px;color:var(--gold);font-weight:800;line-height:1.3}
 #stage.land .bal{text-align:left;order:2}
 #stage.land .bal b{font-size:40px}
 #stage.land .bal b::after{font-size:20px}
@@ -142,6 +143,7 @@ canvas#gc{display:block;touch-action:none;cursor:pointer;border-radius:4px}
   font-weight:900;font-size:17px;color:var(--ink);background:var(--paper);padding:8px 16px;border-radius:999px;box-shadow:0 4px 0 rgba(0,0,0,.3);transition:opacity .2s,transform .2s}
 #msg.on{opacity:1;transform:translate(-50%,-50%) scale(1)}
 #msg.big{font-size:24px;background:var(--gold)}
+#msg.big.long{font-size:17px}
 #msg.bad{background:#FFD6D7;color:#8E1F25}
 #mbanner{position:absolute;left:50%;top:22%;transform:translate(-50%,-50%);width:78%;z-index:20;display:none;pointer-events:none;text-align:center;color:var(--ink);
   background:var(--paper);padding:14px 16px 12px;border-radius:6px 6px 0 0;filter:drop-shadow(0 6px 0 rgba(0,0,0,.25));animation:drop .35s cubic-bezier(.2,.9,.3,1.2)}
@@ -152,7 +154,11 @@ canvas#gc{display:block;touch-action:none;cursor:pointer;border-radius:4px}
 .ban-k{font-family:var(--mono);font-size:11px;color:#6B7069;margin-bottom:4px}
 .ban-t{font-size:24px;font-weight:900;line-height:1.15}
 .ban-s{font-size:17px;font-weight:900;color:#1F8F4E;margin-top:4px}
-.ban-i{font-family:var(--mono);font-size:11px;color:#6B7069;margin-top:6px;border-top:2px dotted rgba(30,43,39,.25);padding-top:6px}
+.ban-i{font-family:var(--mono);font-size:11px;color:#6B7069;margin-top:6px;border-top:2px dotted rgba(30,43,39,.25);padding-top:6px;white-space:pre-line}
+/* goal reached: a red stamp on the payday receipt */
+#mbanner .ban-stamp{display:none;position:absolute;right:-8px;top:-16px;font-size:15px;background:var(--paper);transform:rotate(8deg);white-space:nowrap}
+#mbanner.goal .ban-stamp{display:inline-block;animation:stampin .35s cubic-bezier(.2,.9,.3,1.4) both .15s}
+@keyframes stampin{from{transform:rotate(8deg) scale(1.8);opacity:0}to{transform:rotate(8deg) scale(1);opacity:1}}
 #mbanner.boss .ban-t{color:var(--stamp)}
 #mbanner.map .ban-t{color:#2266B8}
 #tut{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:86%;z-index:16;display:none;pointer-events:none;text-align:center;
@@ -202,6 +208,7 @@ canvas#gc{display:block;touch-action:none;cursor:pointer;border-radius:4px}
 .go-big{font-size:44px;font-weight:900;text-align:center;line-height:1;margin:4px 0 2px;font-variant-numeric:tabular-nums}
 .go-sub{text-align:center;font-weight:800;color:#6B7069;font-size:13px;margin-bottom:6px}
 .bankrupt{position:absolute;right:12px;top:10px;font-size:17px;transform:rotate(9deg);opacity:.92}
+.go-goal{font-family:var(--mono);font-size:12px;color:#6B7069;text-align:center;line-height:1.4;margin-top:6px;border-top:2px dotted rgba(30,43,39,.25);padding-top:6px;white-space:pre-line}
 /* loan offer: no-ad and ad options look alike (portal rules); Poki colors the no-ad option green */
 .go-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .go-row.solo{grid-template-columns:1fr}
@@ -240,6 +247,32 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
 .ld{font-family:var(--mono);font-size:13px;text-align:center;color:#6B7069;padding:10px 0}
 
 /* ad */
+/* event cards (v5.2): pick one of three at the start of months 3, 5, 9, 11, …
+   v5.3: they open on that payday instead of the banner, with a countdown that picks at random */
+#card-screen .sheet{gap:10px}
+.card-k{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
+.card-k b{color:var(--gold);font-weight:800}
+.card-sub{font-size:13px;font-weight:700;color:var(--muted);text-align:center;line-height:1.35;margin-top:-4px}
+.card-time{display:flex;align-items:center;gap:10px}
+.card-bar{flex:1;height:8px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden}
+.card-bar i{display:block;height:100%;width:100%;border-radius:5px;background:var(--gold)}
+#card-t{font-size:12px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;white-space:nowrap}
+#card-screen.late .card-bar i{background:var(--red)}
+#card-screen.late #card-t{color:var(--red)}
+.cards{display:grid;grid-template-columns:1fr;gap:10px}
+.ecard{position:relative;display:flex;flex-direction:column;gap:3px;text-align:left;padding:11px 14px 12px;background:var(--paper);color:var(--ink);
+  border:2.5px solid var(--ink);border-radius:6px;box-shadow:0 4px 0 var(--ink);transition:transform .1s,box-shadow .1s}
+.ecard:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.ecard b{font-size:17px;font-weight:900;line-height:1.2;padding-right:18px}
+.ecard .up,.ecard .dn{font-size:13px;font-weight:800;line-height:1.3}
+.ecard .up{color:#1F7A45}.ecard .up::before{content:"+ "}
+.ecard .dn{color:#B8333A}.ecard .dn::before{content:"\2212  "}
+.ecard .k{display:none;position:absolute;right:10px;top:9px;font-family:var(--mono);font-size:11px;font-weight:800;color:#6B7069}
+#stage.land #card-screen .sheet{width:660px}
+#stage.land .cards{grid-template-columns:repeat(3,1fr)}
+#stage.land .ecard{justify-content:flex-start}
+#stage.land .ecard .k{display:block}
+#queue .qi.ev{background:var(--gold);color:var(--ink);padding:3px 10px;font-size:12px}
 #ad-screen .ad-box{text-align:center}
 #ad-txt{font-size:15px;font-weight:800;color:var(--muted);margin-bottom:6px}
 #ad-timer{font-size:56px;font-weight:900;color:var(--gold)}
@@ -255,7 +288,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
     <div class="brand">Payday <span class="stamp">Panic</span></div>
     <div class="when">
       <div class="cal"><i>Month</i><b id="ui-m">1</b></div>
-      <div class="where"><b id="ui-map">Office</b><span id="ui-rate">Prices rise 22% a month</span></div>
+      <div class="where"><b id="ui-map">Office</b><span id="ui-rate">Prices rise 22% a month</span><em id="ui-goal"></em></div>
     </div>
     <div class="payday"><small><span id="ui-paylbl">Next payday</span><em id="ui-sal">+187 G</em></small><div class="bar"><i id="ui-wave"></i></div></div>
     <div class="bal"><small>Balance</small><b id="ui-g">170</b></div>
@@ -264,7 +297,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
   <div id="field">
     <canvas id="gc" aria-label="Game board"></canvas>
     <div id="msg"></div>
-    <div id="mbanner"><div class="ban-k" id="ban-k"></div><div class="ban-t" id="ban-t"></div><div class="ban-s" id="ban-s"></div><div class="ban-i" id="ban-i"></div></div>
+    <div id="mbanner"><div class="stamp ban-stamp" id="ban-stamp"></div><div class="ban-k" id="ban-k"></div><div class="ban-t" id="ban-t"></div><div class="ban-s" id="ban-s"></div><div class="ban-i" id="ban-i"></div></div>
     <div id="tut"></div>
   </div>
 
@@ -291,6 +324,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="ln"><span>Taxi</span><i></i><span>-12.40</span></div>
         <div class="ln"><span>Delivery</span><i></i><span>-18.99</span></div>
         <div class="ln"><span>Rent</span><i></i><span>-1,250.00</span></div>
+        <div class="ln" id="start-best" style="display:none"><span>Best title</span><i></i><span id="start-best-t"></span></div>
         <div class="ln tot"><span>Your job</span><i></i><span>Stop it</span></div>
       </div>
       <button class="btn" style="margin-top:6px" onclick="G.start()">Play</button>
@@ -312,7 +346,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="tip"><canvas id="how1" width="192" height="192"></canvas><div><b class="tt">Build on the desk</b><p>Pick a tower, then tap a + spot next to the receipt. Towers fire on their own until they run out.</p></div></div>
         <div class="tip"><canvas id="how2" width="192" height="192"></canvas><div><b class="tt">Match the colors</b><p>A tower hits 2× harder on the expense wearing its color. Price tags show what each one costs you. The vault hits an area.</p></div></div>
         <div class="tip"><canvas id="how3" width="192" height="192"></canvas><div><b class="tt">Merge three together</b><p>Put 3 identical towers next to each other, in a row or an L, and they merge into one ★ tower that hits 3× harder, with full ammo.</p></div></div>
-        <div class="tip"><canvas id="how4" width="192" height="192"></canvas><div><b class="tt">Survive the bosses</b><p>Every 6th month a boss brings an escort. Fill the Flash sale bar by hitting enemies, then use it to cut every enemy's health.</p></div></div>
+        <div class="tip"><canvas id="how4" width="192" height="192"></canvas><div><b class="tt">Bosses and savings</b><p>A boss comes every 6th month. Hits charge Flash sale, which cuts every enemy's health. Money you keep earns interest on payday.</p></div></div>
         <div class="fine">Keys: 1–5 pick a tower · U upgrades · Space starts the month or uses Flash sale.<br>Progress is saved on this device. The ranking keeps only the nickname you choose.</div>
       </div>
       <button class="btn" onclick="G.closeHow()">Got it</button>
@@ -329,6 +363,8 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="go-big" id="go-months">1 month</div>
         <div class="ln" style="margin-top:8px"><span>Gems earned</span><i></i><span id="go-gems">+0</span></div>
         <div class="ln"><span>Final balance</span><i></i><span id="go-bal">0 G</span></div>
+        <div class="ln"><span>Title</span><i></i><span id="go-title">None yet</span></div>
+        <div class="go-goal" id="go-goal"></div>
       </div>
       <!-- Portal ad rules: the no-ad option sits next to the ad option at the same size (CrazyGames: same font and color too;
            Poki: no-ad option green, ad option not green). The ad option carries a video icon. -->
@@ -356,6 +392,17 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
     </div>
   </div>
 
+  <!-- EVENT CARDS -->
+  <div id="card-screen" class="ov">
+    <div class="sheet">
+      <div class="card-k" id="card-k">Month 3</div>
+      <div class="h2">Something came up</div>
+      <div class="card-sub">Pick one. Each has an upside and a catch, and lasts until next payday.</div>
+      <div class="card-time"><div class="card-bar"><i id="card-bar"></i></div><span id="card-t">Random pick in 10s</span></div>
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+
   <!-- SUBMIT SCORE -->
   <div id="submit-screen" class="ov">
     <div class="sheet">
@@ -367,6 +414,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="fine">Letters, numbers, spaces and . _ - only. Your nickname and months appear on a public ranking, so don't use your real name.</div>
       </div>
       <button class="btn" onclick="G.submitScore()">Save my score</button>
+      <button class="btn alt" id="sub-skip" onclick="G.skipScore()">Skip</button>
     </div>
   </div>
 
@@ -678,7 +726,7 @@ const ART=(()=>{
 /* =====================================================================
    PLATFORM LAYER — CrazyGames, Poki, or standalone, detected at runtime
    ===================================================================== */
-let CG=null,cgReady=false,pokiReady=false,adBusy=false;
+let CG=null,cgReady=false,pokiReady=false,adBusy=false,adBlocked=false;
 const PLAT={
   name:'standalone',playing:false,
   gameplayStart(){if(this.playing)return;this.playing=true;
@@ -690,7 +738,7 @@ const PLAT={
   // Rewarded ad on game over. onDone(true) = grant reward.
   showRewarded(onDone){
     if(adBusy)return;adBusy=true;const fin=ok=>{adBusy=false;Sound.unduck();hide('ad-screen');onDone(ok);};
-    if(cgReady){try{CG.ad.requestAd('rewarded',{adStarted:()=>Sound.duck(),adFinished:()=>fin(true),adError:()=>fin(true)});}catch(e){fin(true);}return;} // Basic Launch serves no ads: keep the loan usable
+    if(cgReady){try{CG.ad.requestAd('rewarded',{adStarted:()=>Sound.duck(),adFinished:()=>fin(true),adError:()=>fin(false)});}catch(e){fin(false);}return;} // CrazyGames: never reward after adError (also during Basic Launch, when ads are off)
     if(pokiReady){try{PokiSDK.rewardedBreak({size:'large',onStart:()=>Sound.duck()}).then(ok=>fin(!!ok));}catch(e){fin(false);}return;}
     // Standalone: short simulated ad so the flow can be tested
     show('ad-screen');let n=3;const el=document.getElementById('ad-timer');el.textContent=n;
@@ -710,6 +758,7 @@ const PLAT={
       await window.CrazyGames.SDK.init();
       if(window.CrazyGames.SDK.environment!=='disabled'){
         CG=window.CrazyGames.SDK;cgReady=true;PLAT.name='crazygames';
+        try{CG.ad.hasAdblock().then(b=>{adBlocked=!!b;}).catch(()=>{});}catch(e){} // ad loan button says why it is off
         try{if(CG.game.settings&&CG.game.settings.muteAudio)Sound.setMuted(true);
           CG.game.addSettingsChangeListener(s=>Sound.setMuted(!!s.muteAudio));}catch(e){}
       }
@@ -751,7 +800,8 @@ const Sound=(()=>{
     merge:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone('sine',f,0,.12,.06),i*55));},
     leak:()=>tone('sawtooth',300,90,.3,.06),payday:()=>{[784,988,1175].forEach((f,i)=>setTimeout(()=>tone('triangle',f,0,.14,.06),i*70));},
     boss:()=>{tone('square',150,0,.18,.08);setTimeout(()=>tone('square',150,0,.18,.08),240);},
-    gameover:()=>tone('triangle',330,55,.9,.12),sale:()=>{tone('sawtooth',400,1600,.25,.05);}
+    gameover:()=>tone('triangle',330,55,.9,.12),sale:()=>{tone('sawtooth',400,1600,.25,.05);},
+    title:()=>{tone('square',196,0,.12,.07);[784,988,1175,1568].forEach((f,i)=>setTimeout(()=>tone('triangle',f,0,.16,.06),120+i*80));}
   };
   return{
     play(k){if(!on||muted||ducked||!fx[k])return;const a=ctx();if(!a||a.state!=='running')return;fx[k]();},
@@ -808,6 +858,30 @@ const BD=[{id:0,hp:2800,spd:24,pen:900},{id:1,hp:7500,spd:28,pen:2800},{id:2,hp:
 const salaryFor=m=>Math.floor(Math.floor(BASE_SAL*Math.pow(WAGE,m-1))*(S.metaUnlocks.salary?1.1:1));
 const waveSize=m=>m%6===0?(3+Math.floor(m/3)):4+m*2; // boss month = boss + escorts
 function makeQueue(m){const n=waveSize(m),av=MD.filter(x=>x.minM<=m),q=m%6===0?['boss']:[];while(q.length<n)q.push(av[Math.floor(Math.random()*av.length)].id);return q;}
+// v5: payday interest on the balance you kept (counted before the stage refund), capped at a share of that payday's salary
+const INTEREST=0.05,INTEREST_CAP=0.5;
+const interestFor=(gold,m)=>Math.floor(Math.min(Math.max(0,gold)*INTEREST,salaryFor(m)*INTEREST_CAP));
+// v5: goals. Reaching month m earns its title; the best month reached is kept on this device (pp_best)
+const GOALS=[{m:2,t:'First paycheck'},{m:7,t:'Probation passed'},{m:13,t:'One year in'},{m:19,t:'Survived tax season'},{m:25,t:'Two years in'},{m:37,t:'Three years in'}];
+const titleAt=m=>{let t=null;for(const g of GOALS)if(m>=g.m)t=g;return t;};
+const nextGoal=m=>GOALS.find(g=>g.m>m)||null;
+const monthsTxt=n=>n+(n===1?' month':' months');
+const bestMonth=()=>parseInt(store.get('pp_best','0'))||0;
+// v5.2 event cards: at the start of months 3, 5, 9, 11, 15, 17… (m%6 is 3 or 5) the player picks one of three.
+// Each card has an upside and a catch (S.mod) that last until the payday that ends the month.
+const CARD_MONTH=m=>m%6===3||m%6===5;
+const CARD_TIME=10; // v5.3: seconds to pick before one is picked at random (no skip)
+const MOD0={cost:1,upg:1,hp:1,spd:1,pen:1,penRent:1,reward:1,gauge:1,pay:1,intr:1};
+const CARDS=[
+  {id:'overtime',t:'Overtime',up:'50% bigger next payday',dn:'Expenses move 20% faster',mod:{pay:1.5,spd:1.2}},
+  {id:'blackfriday',t:'Black Friday',up:'Flash sale charges twice as fast',dn:'Extra impulse buys show up',mod:{gauge:2},extra:{kind:0,share:.4}},
+  {id:'coupons',t:'Coupon book',up:'Towers cost 30% less',dn:'Expenses have 20% more health',mod:{cost:.7,hp:1.2}},
+  {id:'hustle',t:'Side hustle',up:m=>'Get '+fmt(salaryFor(m))+' G right now',dn:'30% more expenses this month',mod:{},cash:m=>salaryFor(m),extra:{kind:-1,share:.3}},
+  {id:'cashback',t:'Cashback card',up:'Stopped expenses pay double',dn:'Expenses that get through cost 30% more',mod:{reward:2,pen:1.3}},
+  {id:'savings',t:'Savings challenge',up:'Double interest on next payday',dn:'Towers cost 25% more',mod:{intr:2,cost:1.25}},
+  {id:'tuneup',t:'Maintenance day',up:'Upgrade all costs 40% less',dn:'20% smaller next payday',mod:{upg:.6,pay:.8}},
+  {id:'raise',t:'Pay raise',up:'40% bigger next payday',dn:'Rent that gets through costs double',mod:{pay:1.4,penRent:2},minM:9},
+];
 
 /* =====================================================================
    STATE
@@ -815,16 +889,19 @@ function makeQueue(m){const n=waveSize(m),av=MD.filter(x=>x.minM<=m),q=m%6===0?[
 function freshState(){
   let meta={};try{meta=JSON.parse(store.get('pp_meta','{}'))||{};}catch(e){}
   return{queue:makeQueue(1),gold:170,month:1,gauge:0,cleared:0,spawned:0,selTower:null,over:false,trans:false,wait:false,waitT:null,adUsed:false,adOffered:false,gemPaid:0,upgLv:0,adReward:0,
-    startTime:Date.now(),mapIdx:0,gems:parseInt(store.get('pp_gems','0'))||0,metaUnlocks:meta,running:false};
+    startTime:Date.now(),mapIdx:0,gems:parseInt(store.get('pp_gems','0'))||0,metaUnlocks:meta,running:false,best0:bestMonth(),mod:{...MOD0},card:null,cardOffer:null,cardPending:false,cardT:null,cardPay:0,payIntr:0};
 }
 let S=freshState();
 let towers=[],monsters=[],projs=[],fxts=[],particles=[],anim=null,lastT=0,T=0,spawnAcc=0;
 let pathPx=[],pathCells=new Set(),isRankFromGO=false,hover=null,walletHurt=0;
 let shakeTimer=0,shakeIntensity=0,screenFlashColor='',screenFlashTimer=0;
 
-function getTD(id){const b=TD[id];const cm=Math.pow(1.3,S.upgLv),dm=Math.pow(1.4,S.upgLv),metaDmg=S.metaUnlocks.dmg?1.15:1;
-  return{...b,cost:Math.floor(b.cost*cm),dmg:Math.floor(b.dmg*dm*metaDmg)};}
-const getUpgCost=()=>Math.floor(200*Math.pow(1.5,S.upgLv));
+const UPG_DMG=1.4,UPG_PRICE=1.3; // each Upgrade all: every tower hits ×UPG_DMG, every tower built after it costs ×UPG_PRICE
+function getTD(id){const b=TD[id];const cm=Math.pow(UPG_PRICE,S.upgLv),dm=Math.pow(UPG_DMG,S.upgLv),metaDmg=S.metaUnlocks.dmg?1.15:1;
+  return{...b,cost:Math.floor(b.cost*cm*S.mod.cost),dmg:Math.floor(b.dmg*dm*metaDmg)};}
+const getUpgCost=()=>Math.floor(200*Math.pow(1.5,S.upgLv)*S.mod.upg);
+// what the next payday pays: salary and interest on today's balance, with this month's card applied
+const nextPay=()=>Math.floor(salaryFor(S.month+1)*S.mod.pay)+Math.floor(interestFor(S.gold,S.month+1)*S.mod.intr);
 const maxAmmo=tw=>Math.floor(getTD(tw.tid).ammo*(S.metaUnlocks.ammo?1.2:1)*Math.pow(MERGE_AMMO,tw.mlv));
 const towerDmg=tw=>getTD(tw.tid).dmg*Math.pow(MERGE_DMG,tw.mlv);
 // What a tower returns on a stage change: what was actually paid for it (★ = its 3 parts), scaled by unused ammo
@@ -896,8 +973,8 @@ class Monster{
       this.mid=b.id;this.maxHp=Math.floor(b.hp*Math.pow(BOSS_INF,Math.max(0,S.month-6)));this.reward=Math.floor(b.pen*.5);
       this.spd=b.spd+S.month*1.5;this.size=60;this.pen=Math.floor(b.pen*Math.pow(PEN_INF,S.month-1));this.name=L['b'+bi];}
     else{const m=MD[typeof kind==='number'?kind:0];
-      this.mid=m.id;this.maxHp=m.hp*Math.pow(INF,S.month-1);this.reward=Math.max(2,Math.floor(m.pen*REWARD_MULT*Math.pow(1.05,S.month-1)));
-      this.spd=m.spd+S.month*3.2;this.size=m.id===4?40:36;this.pen=Math.floor(m.pen*Math.pow(PEN_INF,S.month-1));}
+      this.mid=m.id;this.maxHp=m.hp*Math.pow(INF,S.month-1)*S.mod.hp;this.reward=Math.max(2,Math.floor(m.pen*REWARD_MULT*Math.pow(1.05,S.month-1)*S.mod.reward));
+      this.spd=(m.spd+S.month*3.2)*S.mod.spd;this.size=m.id===4?40:36;this.pen=Math.floor(m.pen*Math.pow(PEN_INF,S.month-1)*S.mod.pen*(m.id===4?S.mod.penRent:1));}
     this.hp=this.maxHp;this.dead=false;this.flashTimer=0;this.tag='-'+fmtK(this.pen);
   }
   update(dt){
@@ -935,7 +1012,7 @@ class Proj{
     if(this.tg.dead){this.dead=true;return;}
     const dx=this.tg.x-this.x,dy=this.tg.y-this.y,dist=Math.hypot(dx,dy),mv=this.spd*dt;this.rot+=dt*12;
     if(dist<12){this.dead=true;const tg=this.tg,sp=TD[this.tid].splash;
-      S.gauge=Math.min(100,S.gauge+(tg.isBoss?2.5:1.5));Sound.play('hit');
+      S.gauge=Math.min(100,S.gauge+(tg.isBoss?2.5:1.5)*S.mod.gauge);Sound.play('hit');
       const hits=[tg];
       if(sp){particles.push(new Particle(tg.x,tg.y,'ring',{c:'rgba(255,201,74,.85)',r:sp*2.4}));triggerShake(2,.08);
         for(const m of monsters)if(!m.dead&&m!==tg&&Math.hypot(m.x-tg.x,m.y-tg.y)<=sp)hits.push(m);}
@@ -950,6 +1027,7 @@ class Proj{
    ===================================================================== */
 function spawnLogic(dt){
   if(S.trans||S.wait)return;const boss=S.month%6===0; // S.wait = build phase until the player taps Start month
+  if(S.cardPending){if(!$('card-screen').classList.contains('on'))openCards();return;} // no spawns until a card is picked
   if(S.spawned>=S.queue.length)return;
   if(boss&&S.spawned===0){monsters.push(new Monster('boss'));S.spawned++;S.gauge=Math.max(S.gauge,50);spawnAcc=0;updateQueue();return;}
   const rate=boss?1.2:Math.max(.40,1.4-S.month*.09);
@@ -963,26 +1041,37 @@ function updateQueue(){
   const left=S.queue.slice(S.spawned),cnt={};left.forEach(k=>cnt[k]=(cnt[k]||0)+1);
   const order=Object.keys(cnt).sort((a,b)=>(a==='boss'?-1:b==='boss'?1:cnt[b]-cnt[a]));
   $('q').innerHTML=order.length?order.map(k=>`<span class="qi${k==='boss'?' boss':''}" title="${k==='boss'?'Boss':L['m'+k]}"><img alt="" src="${queueIcon(k==='boss'?'boss':+k)}">×${cnt[k]}</span>`).join(''):'<span class="qi">All out. Clear the board.</span>';
+  if(S.card)$('q').insertAdjacentHTML('beforeend','<span class="qi ev">'+S.card.t+'</span>');
   const qe=$('queue');qe.classList.toggle('none',qe.clientHeight<34);qe.classList.toggle('tight',qe.clientHeight<62);
 }
 let banT=null;
-function banner(kind,k,title,sub,info,ms){
-  const b=$('mbanner');b.className='on '+kind;$('ban-k').textContent=k;$('ban-t').textContent=title;$('ban-s').textContent=sub;$('ban-i').textContent=info;
+function banner(kind,k,title,sub,info,ms,stamp){
+  const b=$('mbanner');b.className='on '+kind+(stamp?' goal':'');$('ban-k').textContent=k;$('ban-t').textContent=title;$('ban-s').textContent=sub;$('ban-i').textContent=info;$('ban-stamp').textContent=stamp||'';
   void b.offsetWidth;clearTimeout(banT);banT=setTimeout(()=>{b.className='';S.trans=false;},ms);
 }
+const goalLine=()=>{const g=nextGoal(S.month);return g?'Next goal: '+g.t+' in '+monthsTxt(g.m-S.month):'Every goal reached';};
 function checkMonth(){
-  if(S.cleared>=waveSize(S.month)&&!S.trans&&!S.over){
+  if(S.cleared>=S.queue.length&&!S.trans&&!S.over){ // a card can add expenses, so the month ends when its queue is cleared
+    const intr=Math.floor(interestFor(S.gold,S.month+1)*S.mod.intr); // on what was kept, before any stage refund
     S.cleared=0;S.spawned=0;S.trans=true;S.month++;S.queue=makeQueue(S.month);
     const mapChange=(S.month-1)%6===0;let refund=0;
     if(mapChange){S.mapIdx=(S.mapIdx+1)%MAPS.length;const p=buildPath(S.mapIdx);pathPx=p.px;pathCells=p.cells;
       towers.forEach(tw=>refund+=towerRefund(tw));towers=[];S.gold+=refund;S.wait=true;S.waitT=WAIT_MAP;applyTheme();rebuildBoard();}
-    const sal=salaryFor(S.month);S.gold+=sal;
+    const sal=Math.floor(salaryFor(S.month)*S.mod.pay);S.gold+=sal+intr;
+    S.mod={...MOD0};S.card=null;S.cardOffer=null;S.cardPending=CARD_MONTH(S.month); // last month's card ends on this payday
     monsters=[];projs=[];particles=[];
     towers.forEach(tw=>{const mx=maxAmmo(tw);tw.ammo=Math.min(mx,tw.ammo+Math.floor(mx*.3));});
-    const boss=S.month%6===0,info='Prices +22% · Fines +18% · Pay +10%';
-    if(mapChange){banner('map','Month '+S.month,'New stage: '+MAPS[S.mapIdx].name,'Payday +'+fmt(sal)+' G','Old towers sold back for '+fmt(refund)+' G. Enemies arrive in '+WAIT_MAP+' seconds.',4000);Sound.play('payday');}
-    else if(boss){const bi=Math.min(Math.floor((S.month-1)/6),2);banner('boss','Month '+S.month,'Boss: '+L['b'+bi],'Payday +'+fmt(sal)+' G','It brings '+(waveSize(S.month)-1)+' friends. Flash sale starts half charged.',5000);Sound.play('boss');triggerShake(5,.4);}
-    else{banner('','Month '+S.month,'Payday','+'+fmt(sal)+' G',info,3500);Sound.play('payday');}
+    const goal=GOALS.find(g=>g.m===S.month),fresh=!!goal&&S.month>bestMonth();
+    if(S.month>bestMonth())store.set('pp_best',S.month);
+    const boss=S.month%6===0,k='Month '+S.month+(fresh?' · New title':''),pay='+'+fmt(sal+intr)+' G',stamp=goal?goal.t:'';
+    const money=intr>0?'Salary +'+fmt(sal)+' G · Interest +'+fmt(intr)+' G':'Prices +22% · Fines +18% · Pay +10%';
+    if(mapChange){banner('map',k,'New stage: '+MAPS[S.mapIdx].name,'Payday '+pay,'Old towers sold back for '+fmt(refund)+' G. Enemies arrive in '+WAIT_MAP+' seconds.',4000,stamp);}
+    else if(boss){const bi=Math.min(Math.floor((S.month-1)/6),2);banner('boss',k,'Boss: '+L['b'+bi],'Payday '+pay,'It brings '+(waveSize(S.month)-1)+' friends. Flash sale starts half charged.',5000,stamp);Sound.play('boss');triggerShake(5,.4);}
+    else if(S.cardPending){clearTimeout(banT);$('mbanner').className='';openCards(sal+intr);} // v5.3: this payday opens the cards itself; S.trans stays on until a pick
+    else{banner('',k,'Payday',pay,money+'\n'+goalLine()+(CARD_MONTH(S.month+1)?'\nNext payday: pick an event card':''),3500,stamp);}
+    if(!boss)Sound.play(goal?'title':'payday');
+    if(fresh)flashScreen('#FFC94A',.25);
+    S.payIntr=intr;if(intr>0&&!S.cardPending)tutInterest(); // on a card month the tip waits for the pick
     updateUI();updateQueue();
   }
   updateUI();
@@ -1005,9 +1094,10 @@ function updateUI(){
   $('ui-m').textContent=S.month;$('ui-map').textContent=MAPS[S.mapIdx].name;
   const g=$('ui-g');g.textContent=fmt(S.gold);g.classList.toggle('low',S.gold<100);
   const boss=S.month%6===0;$('hud').classList.toggle('boss',boss);
-  $('ui-paylbl').textContent=S.wait?'Build phase':boss?'Boss wave':'Next payday';
-  $('act').classList.toggle('wait',S.wait&&S.running&&!S.over);$('ui-go').textContent='Start month '+S.month;updateCountdown(true);$('ui-sal').textContent='+'+fmt(salaryFor(S.month+1))+' G';
-  $('ui-wave').style.width=Math.min(100,S.cleared/waveSize(S.month)*100)+'%';
+  $('ui-paylbl').textContent=S.wait?'Build phase':boss?'Boss wave':CARD_MONTH(S.month+1)?'Payday + event card':'Next payday';
+  $('act').classList.toggle('wait',S.wait&&S.running&&!S.over);$('ui-go').textContent='Start month '+S.month;updateCountdown(true);$('ui-sal').textContent='+'+fmt(nextPay())+' G'; // salary + interest on today's balance
+  const ng=nextGoal(S.month);$('ui-goal').textContent=ng?'Next goal: '+ng.t+' · month '+ng.m:'Every goal reached';
+  $('ui-wave').style.width=Math.min(100,S.cleared/Math.max(1,S.queue.length)*100)+'%';
   const uc=getUpgCost();$('ui-upg').textContent='Lv.'+(S.upgLv+2)+' · '+fmt(uc)+' G';$('btn-upg').classList.toggle('poor',S.gold<uc);
   TD.forEach((b,i)=>{const el=document.querySelector(`.tw[data-i="${i}"]`);if(!el)return;const c=getTD(i).cost;$('price'+i).textContent=fmt(c);el.classList.toggle('poor',S.gold<c);el.classList.toggle('sel',S.selTower===i);});
 }
@@ -1061,6 +1151,9 @@ function tutAfterPlace(){if(tutStep===0){tutStep=1;store.set('pp_tut',1);documen
   if(S.wait)tut('Enemies arrive in '+WAIT_FIRST+' seconds. Build more, or tap Start month.');else tutAfterGo();}}
 function tutAfterGo(){if(tutStep===1){tutStep=2;store.set('pp_tut',2);
   tut('Tip: put 3 matching towers next to each other to merge them into one ★ tower that hits 3× harder.',5500);}}
+// Step 3 (v5): the first payday that pays interest explains it once
+function tutInterest(){if(tutStep===2){tutStep=3;store.set('pp_tut',3);
+  tut('Money you keep earns '+Math.round(INTEREST*100)+'% interest on payday, up to '+(INTEREST_CAP>=1?'your salary':INTEREST_CAP===.5?'half your salary':Math.round(INTEREST_CAP*100)+'% of your salary')+'. Build or save, your call.',6000);}}
 
 /* =====================================================================
    PLAYER ACTIONS
@@ -1068,7 +1161,9 @@ function tutAfterGo(){if(tutStep===1){tutStep=2;store.set('pp_tut',2);
 window.G={};
 G.select=i=>{S.selTower=S.selTower===i?null:i;Sound.resume();updateUI();};
 G.upgrade=()=>{const c=getUpgCost();if(S.gold<c){Sound.play('error');showMsg('Upgrade needs '+fmt(c)+' G','bad');return;}
-  S.gold-=c;S.upgLv++;Sound.play('upgrade');showMsg('All towers hit harder','big');towers.forEach(tw=>{tw.recoil=1;particles.push(new Particle(tw.x,tw.y,'ring',{c:'rgba(132,103,245,.8)',r:120}));});updateUI();};
+  S.gold-=c;S.upgLv++;Sound.play('upgrade');
+  showMsg('Towers hit '+Math.round((UPG_DMG-1)*100)+'% harder, cost '+Math.round((UPG_PRICE-1)*100)+'% more','big long'); /* v5.4: say the price of upgrading too */
+  towers.forEach(tw=>{tw.recoil=1;particles.push(new Particle(tw.x,tw.y,'ring',{c:'rgba(132,103,245,.8)',r:120}));});updateUI();};
 G.useSkill=()=>{
   if(S.gauge<100||!S.running||S.over)return;S.gauge=0;updateGauge();Sound.play('sale');
   const r=Math.random();let disc,msg,col;
@@ -1087,6 +1182,7 @@ G.toggleSound=()=>Sound.toggle();
 G.showHow=()=>{show('how');drawHow();};G.closeHow=()=>hide('how');
 document.addEventListener('keydown',e=>{
   if(['ArrowDown','ArrowUp',' '].includes(e.key))e.preventDefault();
+  if($('card-screen').classList.contains('on')){if(e.key>='1'&&e.key<='3')G.pickCard(+e.key-1);return;}
   if(!S.running||S.over||e.target.tagName==='INPUT')return;
   if(e.key>='1'&&e.key<='5')G.select(+e.key-1);else if(e.key==='u'||e.key==='U')G.upgrade();
   else if(e.key===' '||e.key==='Enter'){if(S.wait)G.go();else if(e.key===' ')G.useSkill();}
@@ -1100,6 +1196,10 @@ window.addEventListener('wheel',e=>{if(!e.target.closest('.receipt'))e.preventDe
 // or LOAN_GEMS gems as the no-ad alternative. One loan per run either way.
 const LOAN_GEMS=15,LOAN_CD=10*60*1000;
 const loanCdLeft=()=>{const t=parseInt(store.get('pp_loanAt','0'))||0;return Math.max(0,LOAN_CD-(Date.now()-t));};
+// No ad came back (adError / no fill / ads off in CrazyGames Basic Launch): no reward, and the button shows a retry timer
+// instead of staying clickable with no effect. An ad blocker turns it off with a reason.
+const AD_RETRY=60*1000;let noAdUntil=0;
+const adRetryLeft=()=>Math.max(0,noAdUntil-Date.now());
 const fmtClock=ms=>{const s=Math.ceil(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
 let goTimer=null;
 function renderGO(){
@@ -1107,8 +1207,10 @@ function renderGO(){
   $('go-row').classList.toggle('solo',!loan);$('go-ad').style.display=loan?'':'none';$('go-gem').style.display=loan?'':'none';
   $('go-quit-t').textContent=loan?'Give up':'See results';$('go-quit-s').textContent=loan?'No loan':'';$('go-quit-s').style.display=loan?'':'none';
   if(!loan)return;
-  $('go-ad').disabled=cd>0;$('go-ad-t').textContent=cd>0?'Ad loan':'+'+fmt(S.adReward)+' G';$('go-ad-s').textContent=cd>0?'Ready in '+fmtClock(cd):'Loan · watch ad';
-  if(cd<=0)S.adOffered=true;
+  const rl=adRetryLeft(),off=adBlocked?'block':cd>0?'cd':rl>0?'noad':'';
+  $('go-ad').disabled=!!off;$('go-ad-t').textContent=off==='noad'?'No ad now':off?'Ad loan':'+'+fmt(S.adReward)+' G';
+  $('go-ad-s').textContent=off==='block'?'Ad blocker on':off==='cd'?'Ready in '+fmtClock(cd):off==='noad'?'Retry in '+fmtClock(rl):'Loan · watch ad';
+  if(!off)S.adOffered=true;
   const g=$('go-gem');g.disabled=S.gems<LOAN_GEMS;
   g.textContent=S.gems>=LOAN_GEMS?'Loan +'+fmt(S.adReward)+' G for '+LOAN_GEMS+' gems':'Loan for '+LOAN_GEMS+' gems · you have '+S.gems;
 }
@@ -1116,13 +1218,16 @@ function triggerGO(){
   if(S.over)return;S.over=true;S.running=false;Sound.play('gameover');PLAT.gameplayStop();
   const gems=Math.max(0,Math.floor(S.month*1.5)-S.gemPaid);S.gemPaid+=gems;S.gems+=gems;store.set('pp_gems',S.gems);recordStats(); // months are paid out once per run
   $('go-months').textContent=S.month+(S.month===1?' month':' months');$('go-gems').textContent='+'+gems;$('go-bal').textContent=fmt(S.gold)+' G';
+  const tt=titleAt(S.month),ng=nextGoal(S.month);
+  $('go-title').textContent=tt?tt.t+(tt.m>S.best0?' (new)':''):'None yet';
+  $('go-goal').textContent=ng?'Next goal: '+ng.t+'\n'+monthsTxt(ng.m-S.month)+' away':'You reached every goal';
   S.adReward=Math.floor(BASE_SAL*Math.pow(WAGE,S.month-1))*3;
   S.adOffered=false;renderGO();
   clearInterval(goTimer);goTimer=setInterval(()=>{if($('go-screen').classList.contains('on'))renderGO();else clearInterval(goTimer);},1000);
   show('go-screen');
 }
-G.watchAd=()=>{if(S.adUsed||loanCdLeft()>0)return;hide('go-screen');
-  PLAT.showRewarded(ok=>{if(ok){store.set('pp_loanAt',Date.now());revive();}else{showMsg('No ad right now. Try again later.','bad');renderGO();show('go-screen');}});};
+G.watchAd=()=>{if(S.adUsed||loanCdLeft()>0||adBlocked||adRetryLeft()>0)return;hide('go-screen');
+  PLAT.showRewarded(ok=>{if(ok){store.set('pp_loanAt',Date.now());revive();}else{noAdUntil=Date.now()+AD_RETRY;renderGO();show('go-screen');}});};
 G.gemLoan=()=>{if(S.adUsed||S.gems<LOAN_GEMS)return;S.gems-=LOAN_GEMS;store.set('pp_gems',S.gems);hide('go-screen');revive();};
 function revive(){
   S.gold=Math.max(0,S.gold)+S.adReward;S.over=false;S.adUsed=true;S.spawned=S.cleared;monsters=[];projs=[];S.wait=true;S.waitT=WAIT_LOAN;
@@ -1146,7 +1251,7 @@ const lbQuery=()=>window.FB.query(window.FB.collection(window.db,'leaderboard'),
 async function checkTop10(){
   if(!window.db||!window.FB){G.showRank(true);return;}
   try{const snap=await window.FB.getDocs(lbQuery());let n=0,low=1e9;snap.forEach(d=>{n++;low=Math.min(low,d.data().month);});
-    if(n<10||S.month>low){$('sub-d').textContent='You lasted '+S.month+' months. Pick a name for the board.';show('submit-screen');setTimeout(()=>$('inp-nick').focus(),50);}
+    if(n<10||S.month>low){$('sub-d').textContent='You lasted '+monthsTxt(S.month)+'. Pick a name for the board.';show('submit-screen');setTimeout(()=>$('inp-nick').focus(),50);}
     else G.showRank(true);}catch(e){G.showRank(true);}
 }
 // Same checks as firestore.rules (validNick, month 1–60 integer), so a rejected write never looks saved
@@ -1159,6 +1264,8 @@ G.submitScore=async()=>{
   try{await window.FB.addDoc(window.FB.collection(window.db,'leaderboard'),{nickname:nick,month:Math.min(60,Math.max(1,Math.floor(S.month))),timestamp:window.FB.serverTimestamp()});}catch(e){saved=false;}
   hide('submit-screen');G.showRank(true);if(!saved)showMsg('Could not save your score','bad');
 };
+// v5.5: going on the public ranking is the player's choice; Skip saves nothing and goes on to the ranking
+G.skipScore=()=>{hide('submit-screen');G.showRank(true);};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 G.showRank=async(fromGO=false)=>{
   isRankFromGO=fromGO;$('lb-close').textContent=fromGO?'Play again':'Close';$('lb-list').innerHTML='';$('lb-ld').style.display='block';$('lb-ld').textContent='Loading…';show('lb-screen');
@@ -1190,7 +1297,31 @@ function beginRun(){
 }
 function resumeRun(){S.running=true;PLAT.gameplayStart();if(anim)cancelAnimationFrame(anim);lastT=performance.now();anim=requestAnimationFrame(loop);}
 G.start=()=>{Sound.resume();hide('start');S.startTime=Date.now();beginRun();};
-function restart(){S=freshState();towers=[];monsters=[];projs=[];fxts=[];particles=[];spawnAcc=0;$('mbanner').className='';$('tut').classList.remove('on');beginRun();}
+function restart(){S=freshState();towers=[];monsters=[];projs=[];fxts=[];particles=[];spawnAcc=0;$('mbanner').className='';$('tut').classList.remove('on');hide('card-screen');$('card-screen').classList.remove('late');beginRun();}
+// Event cards: three different cards (Pay raise only from month 9). v5.3: they open on the payday that starts the month
+// (pay = that payday, shown on top) and a CARD_TIME countdown picks one at random if the player waits
+function openCards(pay){
+  if(!S.cardOffer){const pool=CARDS.filter(c=>!c.minM||S.month>=c.minM);
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}S.cardOffer=pool.slice(0,3);}
+  if(pay!=null)S.cardPay=pay;
+  $('card-k').innerHTML='Month '+S.month+(S.cardPay?' · Payday <b>+'+fmt(S.cardPay)+' G</b>':'');
+  $('cards').innerHTML=S.cardOffer.map((c,i)=>`<button class="ecard" onclick="G.pickCard(${i})"><span class="k">${i+1}</span><b>${c.t}</b><span class="up">${typeof c.up==='function'?c.up(S.month):c.up}</span><span class="dn">${c.dn}</span></button>`).join('');
+  if(S.cardT==null)S.cardT=CARD_TIME;updateCardTimer(true);
+  show('card-screen');
+}
+let lastCardS=-1;
+function updateCardTimer(force){const t=Math.max(0,S.cardT||0),s=Math.ceil(t);$('card-bar').style.width=(t/CARD_TIME*100)+'%';
+  if(s===lastCardS&&!force)return;lastCardS=s;$('card-t').textContent='Random pick in '+s+'s';$('card-screen').classList.toggle('late',t<=3);}
+G.pickCard=(i,auto)=>{
+  if(!S.cardPending||!S.cardOffer||!S.cardOffer[i])return;const c=S.cardOffer[i];
+  S.card=c;S.mod={...MOD0,...c.mod};
+  if(c.cash){S.gold+=c.cash(S.month);flashGold(false);}
+  if(c.extra){const av=MD.filter(x=>x.minM<=S.month),n=Math.ceil(S.queue.length*c.extra.share);
+    for(let k=0;k<n;k++)S.queue.splice(1+Math.floor(Math.random()*S.queue.length),0,c.extra.kind>=0?c.extra.kind:av[Math.floor(Math.random()*av.length)].id);}
+  S.cardPending=false;S.cardOffer=null;S.cardT=null;S.trans=false;hide('card-screen');$('card-screen').classList.remove('late');
+  spawnAcc=0;Sound.resume();Sound.play('upgrade');showMsg(auto?"Time's up: "+c.t:c.t,'big');
+  if(S.payIntr>0)tutInterest();updateUI();updateQueue();
+};
 
 /* =====================================================================
    MAIN LOOP — update then render (delta time, safe on 120/144 Hz)
@@ -1198,6 +1329,7 @@ function restart(){S=freshState();towers=[];monsters=[];projs=[];fxts=[];particl
 function update(dt){
   T+=dt;
   if(S.wait&&S.waitT!=null&&!S.over){S.waitT-=dt;if(S.waitT<=0)G.go();else updateCountdown();}
+  if(S.cardPending&&S.cardT!=null&&S.cardOffer&&!S.over){S.cardT-=dt;if(S.cardT<=0)G.pickCard(Math.floor(Math.random()*S.cardOffer.length),true);else updateCardTimer();}
   spawnLogic(dt);
   monsters.forEach(m=>m.update(dt));monsters=monsters.filter(m=>!m.dead);
   towers=towers.filter(tw=>{if(tw.ammo<=0){if(!tw.merged){fxts.push(new FX(tw.x,tw.y,'Empty',ART.PAPER,11));burst(tw.x,tw.y,'shred',5);}return false;}return true;});
@@ -1273,6 +1405,7 @@ let idleBonus=0;
 (()=>{const lp=parseInt(store.get('pp_lastPlay','0'));if(lp){const h=(Date.now()-lp)/3600000;if(h>.5)idleBonus=Math.min(Math.floor(h*20),500);}
   store.set('pp_lastPlay',Date.now());window.addEventListener('pagehide',()=>store.set('pp_lastPlay',Date.now()));})();
 refreshSoundIcons();
+{const b=titleAt(bestMonth());if(b){$('start-best-t').textContent=b.t;$('start-best').style.display='';}}
 {const p=buildPath(0);pathPx=p.px;pathCells=p.cells;}
 buildShop();updateGauge();applyTheme();layout();StartBG.start();
 </script>
