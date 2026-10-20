@@ -11,7 +11,7 @@
 
 <style>
 /* =====================================================================
-   PAYDAY PANIC v5.5 — "Receipt & Banknote"
+   PAYDAY PANIC v5.6 — "Receipt & Banknote"
    Board = banknote desk · Path = receipt tape · Exit = your wallet
    ===================================================================== */
 :root{
@@ -102,6 +102,7 @@ canvas#gc{display:block;touch-action:none;cursor:pointer;border-radius:4px}
 #stage.land .tw .nm{font-size:15px;font-weight:900;color:var(--text)}
 #stage.land .tw .bt{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
 #stage.land .tw .bt i{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1.5px var(--ink);flex:none}
+#stage.land .tw .bt2{white-space:normal;line-height:1.15} /* v5.6: wraps rather than widening the shop */
 #stage.land .tw .p{font-size:16px}
 #stage.land .tw .dot{display:none}
 #stage.land .tw .key{display:block}
@@ -543,6 +544,39 @@ const ART=(()=>{
       rr(c,-s*.12,s*.2,s*.24,s*.22,s*.04);paint(c,'#5B3E8C',s,.8);
       c.fillStyle='#fff';c.fillRect(-s*.09,s*.23,s*.18,s*.05);
     },
+    (c,s,t)=>{ // loot box (v5.6): bursts into impulse buys when stopped
+      const lift=s*(.03+.05*Math.abs(Math.sin(t*5)));
+      c.save();c.globalAlpha=.65;c.fillStyle='#FFE58A';c.beginPath();c.ellipse(0,-s*.17,s*.37,s*.035+lift*.8,0,0,Math.PI*2);c.fill();c.restore();
+      rr(c,-s*.4,-s*.17,s*.8,s*.57,s*.07);paint(c,'#FF8FC4',s);
+      for(const d of[-1,1]){rr(c,d*s*.33-s*.05,-s*.17,s*.1,s*.57,s*.03);paint(c,'#E2408A',s,.6);}
+      c.save();c.translate(0,-lift);
+      rr(c,-s*.45,-s*.38,s*.9,s*.23,s*.07);paint(c,'#E2408A',s);
+      c.fillStyle=GOLD;c.fillRect(-s*.43,-s*.3,s*.86,s*.06);
+      rr(c,-s*.07,-s*.34,s*.14,s*.14,s*.03);paint(c,GOLD,s,.6);
+      c.restore();
+      eyes(c,0,s*.04,s,{gap:.14,r:.075,look:Math.sin(t*3)});grin(c,0,s*.2,s,.24,{h:.09});
+      const q=Math.sin(t*4)*s*.04;c.font=`900 ${Math.round(s*.32)}px system-ui,sans-serif`;c.textAlign='center';c.textBaseline='middle';
+      c.lineWidth=lw(s)*1.5;c.lineJoin='round';c.strokeStyle=INK;c.strokeText('?',-s*.36,-s*.52+q);c.fillStyle=GOLD;c.fillText('?',-s*.36,-s*.52+q);
+    },
+    (c,s,t)=>{ // subscription (v5.6): see-through, so some shots go right through it
+      const w=Math.sin(t*6)*s*.03;c.globalAlpha=.72+.14*Math.sin(t*3);
+      c.beginPath();c.moveTo(-s*.36,s*.3);c.lineTo(-s*.36,-s*.2);c.quadraticCurveTo(-s*.36,-s*.44,-s*.12,-s*.44);c.lineTo(s*.12,-s*.44);c.quadraticCurveTo(s*.36,-s*.44,s*.36,-s*.2);c.lineTo(s*.36,s*.3);
+      c.quadraticCurveTo(s*.24,s*.46+w,s*.12,s*.3);c.quadraticCurveTo(0,s*.46-w,-s*.12,s*.3);c.quadraticCurveTo(-s*.24,s*.46+w,-s*.36,s*.3);c.closePath();paint(c,'#DDF8F3',s);
+      rr(c,-s*.24,-s*.34,s*.48,s*.28,s*.06);paint(c,'#2EC9B7',s,.7);
+      poly(c,[[-s*.05,-s*.27],[s*.09,-s*.2],[-s*.05,-s*.13]]);c.fillStyle='#fff';c.fill();
+      eyes(c,0,s*.07,s,{gap:.13,r:.07,lid:'#DDF8F3'});smirk(c,s*.02,s*.2,s);
+      c.globalAlpha=1;c.lineWidth=lw(s)*.9;c.strokeStyle=INK;c.lineCap='round';
+      c.beginPath();c.arc(-s*.4,-s*.44,s*.1,.4,Math.PI*1.75);c.stroke();
+      poly(c,[[-s*.4+s*.1*Math.cos(.4)-s*.07,-s*.44+s*.1*Math.sin(.4)-s*.02],[-s*.4+s*.1*Math.cos(.4)+s*.04,-s*.44+s*.1*Math.sin(.4)-s*.04],[-s*.4+s*.1*Math.cos(.4),-s*.44+s*.1*Math.sin(.4)+s*.06]]);c.fillStyle=INK;c.fill();
+    },
+    (c,s,t)=>{ // phone payment (v5.6): slow, and back next month if it gets through
+      c.rotate(Math.sin(t*2)*.05);
+      rr(c,-s*.28,-s*.46,s*.56,s*.88,s*.11);paint(c,'#2E3440',s);
+      rr(c,-s*.21,-s*.37,s*.42,s*.66,s*.05);paint(c,'#B9A6FF',s,.6);shine(c,-s*.16,-s*.33,s*.06,s*.2);
+      rr(c,-s*.07,-s*.43,s*.14,s*.035,s*.02);c.fillStyle='#596273';c.fill();
+      eyes(c,0,-s*.13,s,{gap:.1,r:.07,angry:true});grin(c,0,s*.05,s,.2,{h:.08});
+      for(let i=0;i<3;i++){c.fillStyle=i===0?'#5B3E8C':'rgba(91,62,140,.35)';rr(c,-s*.13+i*s*.095,s*.19,s*.07,s*.05,s*.015);c.fill();}
+    },
   ];
   // ---------- bosses ----------
   const bosses=[
@@ -648,7 +682,7 @@ const ART=(()=>{
     if(o.flash){const g=c.createRadialGradient(0,0,0,0,0,s*.7);g.addColorStop(0,`rgba(255,255,255,${.9*o.flash})`);g.addColorStop(1,'rgba(255,255,255,0)');
       c.fillStyle=g;c.beginPath();c.arc(0,0,s*.7,0,Math.PI*2);c.fill();c.scale(1+o.flash*.12,1+o.flash*.12);}
     c.scale(1/sq,sq);(o.boss?bosses:monsters)[id](c,s,t);c.restore();
-    if(o.tag)tag(c,x+s*.2,Math.max(7,y-s*.42-bob),s,o.boss?'#E5484D':PAIR[id],o.tag);
+    if(o.tag)tag(c,x+s*.2,Math.max(7,y-s*.42-bob),s,o.boss?'#E5484D':PAIR[o.pair!=null?o.pair:id],o.tag);
   }
   function tower(c,id,x,y,s,t,o={}){
     const ammo=o.ammo==null?1:o.ammo,R=s*.58;
@@ -821,7 +855,8 @@ function refreshSoundIcons(){const i=Sound.on?ICON.on:ICON.off;$('btn-snd').inne
    ===================================================================== */
 const L={
   t0:'Piggy bank',t1:'Espresso machine',t2:'Transit card',t3:'Meal prep',t4:'Vault',
-  m0:'Impulse buy',m1:'Coffee',m2:'Taxi',m3:'Delivery',m4:'Rent',
+  m0:'Impulse buy',m1:'Coffee',m2:'Taxi',m3:'Delivery',m4:'Rent',m5:'Loot box',m6:'Subscription',m7:'Phone payment',
+  mp:{5:'loot boxes',6:'subscriptions',7:'phones'}, // second "Beats" line once they show up (it wraps if needed, so the shop keeps its width)
   b0:'Luxury spree',b1:'Car payment',b2:'Tax bomb',
   beats:['Beats impulse buys','Beats coffee','Beats taxis','Beats delivery','Beats rent · splash']
 };
@@ -850,10 +885,18 @@ const TD=[
   {id:3,cost:280,dmg:170,cd:.5,range:160,ammo:55,bonus:3},
   {id:4,cost:650,dmg:480,cd:.85,range:200,ammo:35,bonus:4,splash:50} // vault: hits every expense within splash px of the target
 ];
+// ctr = the tower that hits it 2× (its price tag wears that tower's color)
 const MD=[
-  {id:0,hp:70,spd:58,pen:14,minM:1},{id:1,hp:140,spd:50,pen:28,minM:1},{id:2,hp:280,spd:44,pen:50,minM:3},
-  {id:3,hp:550,spd:36,pen:90,minM:5},{id:4,hp:1100,spd:26,pen:220,minM:7}
+  {id:0,hp:70,spd:58,pen:14,minM:1,ctr:0},{id:1,hp:140,spd:50,pen:28,minM:1,ctr:1},{id:2,hp:280,spd:44,pen:50,minM:3,ctr:2},
+  {id:3,hp:550,spd:36,pen:90,minM:5,ctr:3},{id:4,hp:1100,spd:26,pen:220,minM:7,ctr:4,size:40},
+  // v5.6 (v5-D) new expenses: split = impulse buys it bursts into when stopped, miss = share of hits that go through it,
+  // back = comes back next month if it gets through. HP chosen so the bot runs as long as without them (design_doc 10.2)
+  {id:5,hp:200,spd:40,pen:60,minM:8,ctr:0,split:2},
+  {id:6,hp:160,spd:50,pen:40,minM:10,ctr:3,miss:.4,size:34}, // meal prep: cooking at home instead of meal-kit subscriptions
+  {id:7,hp:700,spd:22,pen:120,minM:14,ctr:4,size:40,back:true}
 ];
+const PHONE_BACK_MAX=3; // at most this many unpaid phone payments come back in one month
+const beats=(tid,m)=>!m.isBoss&&MD[m.mid].ctr===tid;
 const BD=[{id:0,hp:2800,spd:24,pen:900},{id:1,hp:7500,spd:28,pen:2800},{id:2,hp:18000,spd:32,pen:9000}];
 const salaryFor=m=>Math.floor(Math.floor(BASE_SAL*Math.pow(WAGE,m-1))*(S.metaUnlocks.salary?1.1:1));
 const waveSize=m=>m%6===0?(3+Math.floor(m/3)):4+m*2; // boss month = boss + escorts
@@ -889,7 +932,8 @@ const CARDS=[
 function freshState(){
   let meta={};try{meta=JSON.parse(store.get('pp_meta','{}'))||{};}catch(e){}
   return{queue:makeQueue(1),gold:170,month:1,gauge:0,cleared:0,spawned:0,selTower:null,over:false,trans:false,wait:false,waitT:null,adUsed:false,adOffered:false,gemPaid:0,upgLv:0,adReward:0,
-    startTime:Date.now(),mapIdx:0,gems:parseInt(store.get('pp_gems','0'))||0,metaUnlocks:meta,running:false,best0:bestMonth(),mod:{...MOD0},card:null,cardOffer:null,cardPending:false,cardT:null,cardPay:0,payIntr:0};
+    startTime:Date.now(),mapIdx:0,gems:parseInt(store.get('pp_gems','0'))||0,metaUnlocks:meta,running:false,best0:bestMonth(),mod:{...MOD0},card:null,cardOffer:null,cardPending:false,cardT:null,cardPay:0,payIntr:0,
+    phoneBack:0,backLeft:0,seen:{}};
 }
 let S=freshState();
 let towers=[],monsters=[],projs=[],fxts=[],particles=[],anim=null,lastT=0,T=0,spawnAcc=0;
@@ -974,40 +1018,53 @@ class Monster{
       this.spd=b.spd+S.month*1.5;this.size=60;this.pen=Math.floor(b.pen*Math.pow(PEN_INF,S.month-1));this.name=L['b'+bi];}
     else{const m=MD[typeof kind==='number'?kind:0];
       this.mid=m.id;this.maxHp=m.hp*Math.pow(INF,S.month-1)*S.mod.hp;this.reward=Math.max(2,Math.floor(m.pen*REWARD_MULT*Math.pow(1.05,S.month-1)*S.mod.reward));
-      this.spd=(m.spd+S.month*3.2)*S.mod.spd;this.size=m.id===4?40:36;this.pen=Math.floor(m.pen*Math.pow(PEN_INF,S.month-1)*S.mod.pen*(m.id===4?S.mod.penRent:1));}
-    this.hp=this.maxHp;this.dead=false;this.flashTimer=0;this.tag='-'+fmtK(this.pen);
+      this.spd=(m.spd+S.month*3.2)*S.mod.spd;this.size=m.size||36;this.pen=Math.floor(m.pen*Math.pow(PEN_INF,S.month-1)*S.mod.pen*(m.id===4?S.mod.penRent:1));}
+    this.hp=this.maxHp;this.dead=false;this.flashTimer=0;this.tag='-'+fmtK(this.pen);this.hold=0;this.missT=0;
   }
   update(dt){
-    if(this.flashTimer>0)this.flashTimer-=dt;if(this.wpI>=pathPx.length)return;
+    if(this.flashTimer>0)this.flashTimer-=dt;if(this.missT>0)this.missT-=dt;if(this.wpI>=pathPx.length)return;
+    if(this.hold>0){this.hold-=dt;return;} // just popped out of a loot box
     const tg=pathPx[this.wpI],dist=Math.hypot(tg.x-this.x,tg.y-this.y),mv=this.spd*dt;
     if(dist<mv+1){this.x=tg.x;this.y=tg.y;this.wpI++;
       if(this.wpI>=pathPx.length&&!this.dead){this.dead=true;S.gold-=this.pen;S.cleared++;
         burst(this.x,this.y,'leak',8,'#FF5A5F');fxts.push(new FX(Math.min(this.x,CW-24),this.y-18,'-'+fmt(this.pen),'#FF5A5F',16));
-        triggerShake(5,.22);walletHurt=1;flashGold(true);Sound.play('leak');updateUI();
+        triggerShake(5,.22);walletHurt=1;flashGold(true);Sound.play('leak');
+        if(!this.isBoss&&MD[this.mid].back&&S.phoneBack<PHONE_BACK_MAX){S.phoneBack++;fxts.push(new FX(Math.min(this.x,CW-50),this.y-36,'Back next month','#B9A6FF',11));}
+        updateUI();
         if(S.gold<0)triggerGO();else checkMonth();}}
     else{this.x+=(tg.x-this.x)/dist*mv;this.y+=(tg.y-this.y)/dist*mv;}
   }
   draw(){
     const fl=this.flashTimer>0?Math.min(1,this.flashTimer*8):0,frac=Math.max(0,this.hp/this.maxHp),s=this.size;
-    ART.monster(ctx,this.mid,this.x,this.y,s,T,{boss:this.isBoss,seed:this.seed,flash:fl,tag:this.tag});
+    ART.monster(ctx,this.mid,this.x,this.y,s,T,{boss:this.isBoss,seed:this.seed,flash:fl,tag:this.tag,pair:this.isBoss?null:MD[this.mid].ctr});
     const top=Math.max(this.isBoss?22:6,this.y-s*.66);
     if(this.isBoss){ART.hpBar(ctx,this.x,top,52,frac,true);ART.pill(ctx,this.x,top-10,this.name+' · '+fmtK(Math.ceil(this.hp)),'#E5484D','#fff',10);}
     else if(frac<1)ART.hpBar(ctx,this.x,top,26,frac,false);
   }
 }
 // One hit on one expense: 2× on its matching tower (not bosses), payout and month check on a kill
-function hitMonster(m,dmg,tid,bonus){
-  if(m.dead)return;const crit=m.mid===bonus&&!m.isBoss,d=crit?dmg*2:dmg;
+function hitMonster(m,dmg,tid){
+  if(m.dead)return;const md=m.isBoss?null:MD[m.mid];
+  if(md&&md.miss&&Math.random()<md.miss){if(m.missT<=0){m.missT=.35;fxts.push(new FX(m.x,m.y-20,'Miss','#E8F2EE',11));}return;} // v5.6 subscription
+  const crit=beats(tid,m),d=crit?dmg*2:dmg;
   m.hp-=d;m.flashTimer=.12;burst(m.x,m.y,'spark',crit?7:4,ART.PAIR[tid]);
   if(crit)fxts.push(new FX(m.x,m.y-22,'2× CRIT',ART.PAIR[tid],12));
   if(m.hp<=0){m.dead=true;S.gold+=m.reward;S.cleared++;
     burst(m.x,m.y,'shred',m.isBoss?26:9);burst(m.x,m.y,'coin',m.isBoss?10:3);
     fxts.push(new FX(m.x,m.y-6,'+'+fmt(m.reward),ART.GOLD,m.isBoss?22:13));Sound.play('kill');
     if(m.isBoss){triggerShake(10,.5);flashScreen('#FFC94A',.3);showMsg(m.name+' paid off','big');}else triggerShake(1.5,.08);
+    if(md&&md.split)splitLoot(m,md.split); // before the month check: the impulse buys belong to this month
     flashGold(false);updateUI();checkMonth();}
 }
+// v5.6: a stopped loot box bursts into n impulse buys where it stood. They join this month's queue as already spawned.
+function splitLoot(m,n){
+  S.queue.splice(S.spawned,0,...Array(n).fill(0));S.spawned+=n;
+  const tg=pathPx[Math.min(m.wpI,pathPx.length-1)],dx=tg.x-m.x,dy=tg.y-m.y,dl=Math.hypot(dx,dy)||1;
+  for(let i=0;i<n;i++){const k=new Monster(0),o=(i-(n-1)/2)*9;k.x=m.x-dy/dl*o;k.y=m.y+dx/dl*o;k.wpI=m.wpI;k.hold=.25+i*.3;k.flashTimer=.12;monsters.push(k);}
+  burst(m.x,m.y,'spark',10,'#FFE58A');fxts.push(new FX(m.x,m.y-24,'Surprise!',ART.PAIR[0],13));
+}
 class Proj{
-  constructor(x,y,tg,dmg,tid,bonus){this.x=x;this.y=y;this.tg=tg;this.dmg=dmg;this.tid=tid;this.bonus=bonus;this.spd=360;this.dead=false;this.rot=0;}
+  constructor(x,y,tg,dmg,tid){this.x=x;this.y=y;this.tg=tg;this.dmg=dmg;this.tid=tid;this.spd=360;this.dead=false;this.rot=0;}
   update(dt){
     if(this.tg.dead){this.dead=true;return;}
     const dx=this.tg.x-this.x,dy=this.tg.y-this.y,dist=Math.hypot(dx,dy),mv=this.spd*dt;this.rot+=dt*12;
@@ -1016,7 +1073,7 @@ class Proj{
       const hits=[tg];
       if(sp){particles.push(new Particle(tg.x,tg.y,'ring',{c:'rgba(255,201,74,.85)',r:sp*2.4}));triggerShake(2,.08);
         for(const m of monsters)if(!m.dead&&m!==tg&&Math.hypot(m.x-tg.x,m.y-tg.y)<=sp)hits.push(m);}
-      const mo=S.month;for(const m of hits){if(S.month!==mo)break;hitMonster(m,m===tg?this.dmg:this.dmg*SPLASH_SIDE,this.tid,this.bonus);}} // a kill can end the month
+      const mo=S.month;for(const m of hits){if(S.month!==mo)break;hitMonster(m,m===tg?this.dmg:this.dmg*SPLASH_SIDE,this.tid);}} // a kill can end the month
     else{this.x+=dx/dist*mv;this.y+=dy/dist*mv;if(Math.random()<.3)particles.push(new Particle(this.x,this.y,'trail',ART.PAIR[this.tid]));}
   }
   draw(){ART.shot(ctx,this.tid,this.x,this.y,7,this.tid===1||this.tid===2?this.rot:0);}
@@ -1031,8 +1088,17 @@ function spawnLogic(dt){
   if(S.spawned>=S.queue.length)return;
   if(boss&&S.spawned===0){monsters.push(new Monster('boss'));S.spawned++;S.gauge=Math.max(S.gauge,50);spawnAcc=0;updateQueue();return;}
   const rate=boss?1.2:Math.max(.40,1.4-S.month*.09);
-  spawnAcc+=dt;if(spawnAcc>=rate){monsters.push(new Monster(S.queue[S.spawned]));S.spawned++;spawnAcc=0;updateQueue();}
+  spawnAcc+=dt;if(spawnAcc>=rate){const m=new Monster(S.queue[S.spawned]);monsters.push(m);S.spawned++;spawnAcc=0;
+    if(!m.isBoss&&MD[m.mid].back&&S.backLeft>0){S.backLeft--;fxts.push(new FX(Math.max(44,m.x+CELL),m.y-22,'Back again','#B9A6FF',11));}
+    newTip(m);updateQueue();}
 }
+// v5.6: the first time a new expense walks in (twice per device), say what it does and which tower beats it
+const NEW_TIP={5:'New: loot box. Stop it and it bursts into 2 impulse buys. Piggy banks hit it 2×.',
+  6:'New: subscription. 4 in 10 shots go right through it. Meal prep hits it 2×.',
+  7:'New: phone payment. Slow, but if it gets through it comes back next month. Vaults hit it 2×.'};
+function newTip(m){if(m.isBoss||!NEW_TIP[m.mid]||S.seen[m.mid])return;S.seen[m.mid]=1;
+  let n={};try{n=JSON.parse(store.get('pp_new','{}'))||{};}catch(e){}
+  if((n[m.mid]||0)>=2)return;n[m.mid]=(n[m.mid]||0)+1;store.set('pp_new',JSON.stringify(n));tut(NEW_TIP[m.mid],6500);}
 const QIMG={};
 function queueIcon(k){if(QIMG[k])return QIMG[k];const c=document.createElement('canvas');c.width=c.height=78;const x=c.getContext('2d');x.scale(3,3);
   if(k==='boss'){const bi=Math.min(Math.floor((S.month-1)/6),2);ART.monster(x,bi,13,15,22,1,{boss:true});return c.toDataURL();}
@@ -1054,6 +1120,7 @@ function checkMonth(){
   if(S.cleared>=S.queue.length&&!S.trans&&!S.over){ // a card can add expenses, so the month ends when its queue is cleared
     const intr=Math.floor(interestFor(S.gold,S.month+1)*S.mod.intr); // on what was kept, before any stage refund
     S.cleared=0;S.spawned=0;S.trans=true;S.month++;S.queue=makeQueue(S.month);
+    S.backLeft=S.phoneBack;for(;S.phoneBack>0;S.phoneBack--)S.queue.splice(1+Math.floor(Math.random()*(S.queue.length-1)),0,7); // v5.6
     const mapChange=(S.month-1)%6===0;let refund=0;
     if(mapChange){S.mapIdx=(S.mapIdx+1)%MAPS.length;const p=buildPath(S.mapIdx);pathPx=p.px;pathCells=p.cells;
       towers.forEach(tw=>refund+=towerRefund(tw));towers=[];S.gold+=refund;S.wait=true;S.waitT=WAIT_MAP;applyTheme();rebuildBoard();}
@@ -1081,12 +1148,12 @@ function checkMonth(){
    HUD & SHOP
    ===================================================================== */
 function buildShop(){
-  const sh=$('shop');sh.innerHTML='';
+  const sh=$('shop');sh.innerHTML='';lastBt=-1;
   TD.forEach((b,i)=>{const d=getTD(i),btn=document.createElement('button');btn.className='tw'+(S.selTower===i?' sel':'');btn.style.setProperty('--c',ART.PAIR[i]);btn.dataset.i=i;
     btn.setAttribute('aria-label',L['t'+i]+', '+d.cost+' gold');
     const ic=document.createElement('canvas');ic.width=144;ic.height=144;const x=ic.getContext('2d');x.scale(3,3);ART.tower(x,i,24,24,30,1.2,{ammo:1});
     btn.appendChild(ic);
-    btn.insertAdjacentHTML('beforeend',`<span class="txt"><b class="nm">${L['t'+i]}</b><span class="bt"><i></i>${L.beats[i]}</span></span><span class="p" id="price${i}">${fmt(d.cost)}</span><span class="dot"></span><span class="key">${i+1}</span>`);
+    btn.insertAdjacentHTML('beforeend',`<span class="txt"><b class="nm">${L['t'+i]}</b><span class="bt"><i></i>${L.beats[i]}</span><span class="bt bt2" id="bt2${i}" style="display:none"><i></i><span></span></span></span><span class="p" id="price${i}">${fmt(d.cost)}</span><span class="dot"></span><span class="key">${i+1}</span>`);
     btn.onclick=()=>G.select(i);sh.appendChild(btn);});
   updateUI();
 }
@@ -1100,7 +1167,10 @@ function updateUI(){
   $('ui-wave').style.width=Math.min(100,S.cleared/Math.max(1,S.queue.length)*100)+'%';
   const uc=getUpgCost();$('ui-upg').textContent='Lv.'+(S.upgLv+2)+' · '+fmt(uc)+' G';$('btn-upg').classList.toggle('poor',S.gold<uc);
   TD.forEach((b,i)=>{const el=document.querySelector(`.tw[data-i="${i}"]`);if(!el)return;const c=getTD(i).cost;$('price'+i).textContent=fmt(c);el.classList.toggle('poor',S.gold<c);el.classList.toggle('sel',S.selTower===i);});
+  if(lastBt!==S.month){lastBt=S.month;TD.forEach((b,i)=>{const e=$('bt2'+i);if(!e)return;const nm=MD.filter(m=>m.id>4&&m.ctr===i&&m.minM<=S.month).map(m=>L.mp[m.id]);
+    e.style.display=nm.length?'':'none';e.lastChild.textContent='Beats '+nm.join(', ');});}
 }
+let lastBt=-1;
 let lastCd=-1;function updateCountdown(force){const v=S.wait&&S.waitT!=null?Math.max(1,Math.ceil(S.waitT)):0;if(v===lastCd&&!force)return;lastCd=v;$('ui-gocd').textContent=v?v+'s':'';}
 let lastGauge=-1;function updateGauge(){const v=Math.floor(S.gauge);if(v===lastGauge)return;lastGauge=v;const r=S.gauge>=100;$('skill-bar').style.width=S.gauge+'%';$('ui-skillpct').textContent=Math.floor(S.gauge)+'%';$('btn-skill').classList.toggle('ready',r);}
 
@@ -1231,6 +1301,7 @@ G.watchAd=()=>{if(S.adUsed||loanCdLeft()>0||adBlocked||adRetryLeft()>0)return;hi
 G.gemLoan=()=>{if(S.adUsed||S.gems<LOAN_GEMS)return;S.gems-=LOAN_GEMS;store.set('pp_gems',S.gems);hide('go-screen');revive();};
 function revive(){
   S.gold=Math.max(0,S.gold)+S.adReward;S.over=false;S.adUsed=true;S.spawned=S.cleared;monsters=[];projs=[];S.wait=true;S.waitT=WAIT_LOAN;
+  if(S.cleared>=S.queue.length)checkMonth(); // v5.6 fix: the month's last expense caused the bankruptcy, so go on to payday (it used to stall here)
   Sound.play('upgrade');showMsg('Loan approved +'+fmt(S.adReward)+' G','big');resumeRun();updateUI();
 }
 G.quit=()=>{clearInterval(goTimer);hide('go-screen');showPerks();};
@@ -1335,8 +1406,8 @@ function update(dt){
   towers=towers.filter(tw=>{if(tw.ammo<=0){if(!tw.merged){fxts.push(new FX(tw.x,tw.y,'Empty',ART.PAPER,11));burst(tw.x,tw.y,'shred',5);}return false;}return true;});
   towers.forEach(tw=>{const td=getTD(tw.tid);tw.timer+=dt;if(tw.recoil>0)tw.recoil=Math.max(0,tw.recoil-dt*8);
     if(tw.timer<td.cd)return;let best=null,bd=td.range,bon=null,bnd=td.range;
-    for(const m of monsters){if(m.dead)continue;const d=Math.hypot(m.x-tw.x,m.y-tw.y);if(d<bd){bd=d;best=m;}if(m.mid===td.bonus&&!m.isBoss&&d<bnd){bnd=d;bon=m;}}
-    const tg=bon||best;if(tg){projs.push(new Proj(tw.x,tw.y-4,tg,towerDmg(tw),tw.tid,td.bonus));tw.timer=0;tw.ammo--;tw.recoil=1;Sound.play('shoot');}});
+    for(const m of monsters){if(m.dead)continue;const d=Math.hypot(m.x-tw.x,m.y-tw.y);if(d<bd){bd=d;best=m;}if(d<bnd&&beats(tw.tid,m)){bnd=d;bon=m;}}
+    const tg=bon||best;if(tg){projs.push(new Proj(tw.x,tw.y-4,tg,towerDmg(tw),tw.tid));tw.timer=0;tw.ammo--;tw.recoil=1;Sound.play('shoot');}});
   projs.forEach(p=>p.update(dt));projs=projs.filter(p=>!p.dead);
   particles.forEach(p=>p.update(dt));particles=particles.filter(p=>p.life>0);if(particles.length>320)particles.splice(0,particles.length-320);
   fxts.forEach(f=>f.update(dt));fxts=fxts.filter(f=>f.life>0);
