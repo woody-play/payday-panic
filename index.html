@@ -11,7 +11,7 @@
 
 <style>
 /* =====================================================================
-   PAYDAY PANIC v5.6 — "Receipt & Banknote"
+   PAYDAY PANIC v5.10 — "Receipt & Banknote"
    Board = banknote desk · Path = receipt tape · Exit = your wallet
    ===================================================================== */
 :root{
@@ -191,7 +191,7 @@ canvas#gc{display:block;touch-action:none;cursor:pointer;border-radius:4px}
 
 /* start */
 #start{z-index:200;background:none;-webkit-backdrop-filter:none;backdrop-filter:none}
-#how,#lb-screen{z-index:300} /* both open from the start screen too */
+#how,#lb-screen{z-index:300} /* both open from the start screen too (lb-screen = Your records) */
 #start-bg{position:absolute;inset:0;width:100%;height:100%}
 .start-col{position:relative;width:300px;display:flex;flex-direction:column;align-items:center;gap:14px}
 .printer{width:100%;height:22px;border-radius:11px;background:#2D3436;box-shadow:inset 0 -6px 0 #1B2022,0 3px 0 rgba(0,0,0,.35);position:relative;z-index:2}
@@ -243,9 +243,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
 .tip p{font-size:13px;line-height:1.4;color:#3D4943}
 .fine{font-size:11px;color:#6B7069;text-align:center;line-height:1.4;margin-top:6px}
 
-/* leaderboard / submit */
-.ninp{width:100%;height:46px;border-radius:10px;border:2.5px solid var(--ink);background:#fff;color:var(--ink);font:inherit;font-size:17px;font-weight:800;text-align:center;outline:none;margin:8px 0 4px}
-.ld{font-family:var(--mono);font-size:13px;text-align:center;color:#6B7069;padding:10px 0}
+/* records screen: uses .ln rows */
 
 /* ad */
 /* event cards (v5.2): pick one of three at the start of months 3, 5, 9, 11, …
@@ -273,6 +271,21 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
 #stage.land .cards{grid-template-columns:repeat(3,1fr)}
 #stage.land .ecard{justify-content:flex-start}
 #stage.land .ecard .k{display:block}
+/* v5.7 jobs: picked before a run once there is a choice; locked ones unlock with gems */
+.ecard .jt{margin-top:3px;font-family:var(--mono);font-size:11px;font-weight:800;color:#6B7069}
+.ecard.last{outline:3px solid var(--gold);outline-offset:2px}
+.ecard.lock{background:var(--paper-dk)}
+.ecard.lock .jt{color:#5A45C9}
+.ecard.lock:disabled{opacity:.72;cursor:default}
+#shop-jobs{white-space:pre-line}
+/* v5.8 daily budget: a second button next to Play and Play again */
+.play-row,.lb-row{display:grid;grid-template-columns:1fr;gap:8px;width:100%}
+.play-row{margin-top:6px}
+.play-row.two{grid-template-columns:1.5fr 1fr}
+.lb-row.two{grid-template-columns:1fr 1fr}
+.btn.alt.daily{height:54px;flex-direction:column;gap:0;font-size:17px;line-height:1.1}
+.btn.alt.daily small{font-size:11px;font-weight:800;opacity:.75;font-variant-numeric:tabular-nums}
+#stage.land #job-screen .sheet{width:660px}
 #queue .qi.ev{background:var(--gold);color:var(--ink);padding:3px 10px;font-size:12px}
 #ad-screen .ad-box{text-align:center}
 #ad-txt{font-size:15px;font-weight:800;color:var(--muted);margin-bottom:6px}
@@ -328,10 +341,13 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="ln" id="start-best" style="display:none"><span>Best title</span><i></i><span id="start-best-t"></span></div>
         <div class="ln tot"><span>Your job</span><i></i><span>Stop it</span></div>
       </div>
-      <button class="btn" style="margin-top:6px" onclick="G.start()">Play</button>
+      <div class="play-row" id="play-row">
+        <button class="btn" onclick="G.start()">Play</button>
+        <button class="btn alt daily" id="btn-daily" onclick="G.daily()" style="display:none"><span>Daily</span><small id="daily-s">New today</small></button>
+      </div>
       <div class="start-row">
         <button class="btn alt" onclick="G.showHow()">How to play</button>
-        <button class="btn alt" onclick="G.showRank(false)">Ranking</button>
+        <button class="btn alt" onclick="G.showRecords(false)">Records</button>
         <button class="btn alt" id="btn-ss" onclick="G.toggleSound()" aria-label="Sound"></button>
       </div>
     </div>
@@ -348,7 +364,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="tip"><canvas id="how2" width="192" height="192"></canvas><div><b class="tt">Match the colors</b><p>A tower hits 2× harder on the expense wearing its color. Price tags show what each one costs you. The vault hits an area.</p></div></div>
         <div class="tip"><canvas id="how3" width="192" height="192"></canvas><div><b class="tt">Merge three together</b><p>Put 3 identical towers next to each other, in a row or an L, and they merge into one ★ tower that hits 3× harder, with full ammo.</p></div></div>
         <div class="tip"><canvas id="how4" width="192" height="192"></canvas><div><b class="tt">Bosses and savings</b><p>A boss comes every 6th month. Hits charge Flash sale, which cuts every enemy's health. Money you keep earns interest on payday.</p></div></div>
-        <div class="fine">Keys: 1–5 pick a tower · U upgrades · Space starts the month or uses Flash sale.<br>Progress is saved on this device. The ranking keeps only the nickname you choose.</div>
+        <div class="fine">Keys: 1–5 pick a tower · U upgrades · Space starts the month or uses Flash sale.<br>Your progress and records are saved automatically.</div>
       </div>
       <button class="btn" onclick="G.closeHow()">Got it</button>
     </div>
@@ -358,19 +374,21 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
   <div id="go-screen" class="ov">
     <div class="sheet">
       <div class="receipt">
-        <div class="rk">Final statement</div>
+        <div class="rk" id="go-rk">Final statement</div>
         <div class="stamp bankrupt">Bankrupt</div>
         <div class="go-sub" style="margin-top:8px">You lasted</div>
         <div class="go-big" id="go-months">1 month</div>
         <div class="ln" style="margin-top:8px"><span>Gems earned</span><i></i><span id="go-gems">+0</span></div>
         <div class="ln"><span>Final balance</span><i></i><span id="go-bal">0 G</span></div>
-        <div class="ln"><span>Title</span><i></i><span id="go-title">None yet</span></div>
+        <div class="ln"><span id="go-title-k">Title</span><i></i><span id="go-title">None yet</span></div>
+        <div class="ln"><span>Job</span><i></i><span id="go-job">Intern</span></div>
         <div class="go-goal" id="go-goal"></div>
       </div>
       <!-- Portal ad rules: the no-ad option sits next to the ad option at the same size (CrazyGames: same font and color too;
            Poki: no-ad option green, ad option not green). The ad option carries a video icon. -->
       <div class="go-row" id="go-row">
         <button class="gb std" id="go-quit" onclick="G.quit()"><span><b id="go-quit-t">Give up</b><small id="go-quit-s">No loan</small></span></button>
+        <button class="gb std" id="go-again" onclick="G.dailyAgain()" style="display:none"><span><b>Try again</b><small>Same budget</small></span></button>
         <button class="gb rw" id="go-ad" onclick="G.watchAd()"><svg class="clap" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5h18V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="currentColor"/><path d="M2.9 7.9 19.2 3.4l1 3.5L3.9 11.4z" fill="currentColor"/><path d="M7.3 6.7l2.4 3M11.6 5.5l2.4 3M15.9 4.3l2.4 3" stroke="#FFC94A" stroke-width="1.5"/><path d="M10.2 12.6v5.6l4.6-2.8z" fill="#FFC94A"/></svg><span><b id="go-ad-t">Loan</b><small id="go-ad-s">Watch an ad</small></span></button>
       </div>
       <button class="btn alt" id="go-gem" onclick="G.gemLoan()">Loan for 15 gems</button>
@@ -388,6 +406,7 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
         <div class="h2" style="margin:4px 0 2px">Permanent perks</div>
         <div class="go-sub">You have <span class="gems" id="meta-gems">0 gems</span></div>
         <div id="shop-grid"></div>
+        <div class="fine" id="shop-jobs"></div>
       </div>
       <button class="btn" onclick="G.closeShop()">Continue</button>
     </div>
@@ -404,46 +423,33 @@ body.plat-poki .gb.std{background:#2E9E5B;color:#fff}
     </div>
   </div>
 
-  <!-- SUBMIT SCORE -->
-  <div id="submit-screen" class="ov">
+  <!-- JOBS (v5.7): before a run, once there is a choice -->
+  <div id="job-screen" class="ov">
     <div class="sheet">
-      <div class="receipt">
-        <div class="rk">Hall of fame</div>
-        <div class="h2" style="margin:6px 0">You made the top 10</div>
-        <div class="go-sub" id="sub-d"></div>
-        <input type="text" id="inp-nick" class="ninp" placeholder="Nickname" maxlength="10" autocomplete="off">
-        <div class="fine">Letters, numbers, spaces and . _ - only. Your nickname and months appear on a public ranking, so don't use your real name.</div>
-      </div>
-      <button class="btn" onclick="G.submitScore()">Save my score</button>
-      <button class="btn alt" id="sub-skip" onclick="G.skipScore()">Skip</button>
+      <div class="card-k">Before you start</div>
+      <div class="h2">Pick your job</div>
+      <div class="card-sub" id="job-sub"></div>
+      <div class="cards" id="jobs"></div>
     </div>
   </div>
 
-  <!-- LEADERBOARD -->
+  <!-- YOUR RECORDS (v5.10: no online ranking, records kept with the player's progress) -->
   <div id="lb-screen" class="ov">
     <div class="sheet">
       <div class="receipt">
-        <div class="rk">Hall of fame</div>
-        <div class="h2" style="margin:4px 0 8px">Longest survivors</div>
-        <div id="lb-ld" class="ld">Loading…</div>
+        <div class="rk">Your records</div>
+        <div class="h2" style="margin:4px 0 8px">Best so far</div>
         <div id="lb-list"></div>
       </div>
-      <button class="btn" id="lb-close" onclick="G.closeRank()">Close</button>
+      <div class="lb-row" id="lb-row">
+        <button class="btn" id="lb-close" onclick="G.closeRank()">Close</button>
+        <button class="btn alt daily" id="lb-daily" onclick="G.daily()" style="display:none"><span>Daily</span><small id="lb-daily-s">New today</small></button>
+      </div>
     </div>
   </div>
 
 </div>
 </div>
-
-
-<script type="module">
-// Leaderboard + global stats (Firebase Spark plan). Writes happen once per game over only.
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.10.0/firebase-app.js";
-import{getFirestore,collection,addDoc,getDocs,query,orderBy,limit,serverTimestamp,doc,setDoc,updateDoc,increment}from"https://www.gstatic.com/firebasejs/10.10.0/firebase-firestore.js";
-const fc={apiKey:"AIzaSyCtdbj_EwZ-FTiEvEyfDGmgD1XBUh8w6fw",authDomain:"payday-panic.firebaseapp.com",projectId:"payday-panic",storageBucket:"payday-panic.firebasestorage.app",messagingSenderId:"258318893188",appId:"1:258318893188:web:8a51e109990179d61202d1"};
-try{const a=initializeApp(fc);window.db=getFirestore(a);window.FB={collection,addDoc,getDocs,query,orderBy,limit,serverTimestamp,doc,setDoc,updateDoc,increment};}
-catch(e){window.db=null;window.FB=null;}
-</script>
 
 
 <script>
@@ -786,6 +792,8 @@ const PLAT={
     fin();
   }
 };
+// v5.6: Play waits (up to 4 s) for the CrazyGames SDK, so progress loads from the Data module before a run starts
+let cgDone;PLAT.pending=!!(window.CrazyGames&&window.CrazyGames.SDK);PLAT.started=false;PLAT.cgDone=new Promise(r=>cgDone=r);
 (async()=>{
   try{
     if(window.CrazyGames&&window.CrazyGames.SDK){
@@ -795,9 +803,14 @@ const PLAT={
         try{CG.ad.hasAdblock().then(b=>{adBlocked=!!b;}).catch(()=>{});}catch(e){} // ad loan button says why it is off
         try{if(CG.game.settings&&CG.game.settings.muteAudio)Sound.setMuted(true);
           CG.game.addSettingsChangeListener(s=>Sound.setMuted(!!s.muteAudio));}catch(e){}
+        // v5.6: progress lives in the player's CrazyGames account (Data module, same API as localStorage; guests are kept
+        // locally by the SDK). Only if it works and no run has started yet, so a run never mixes two save places.
+        try{const d=CG.data;if(d&&!PLAT.started){d.setItem('pp_probe','1');const ok=d.getItem('pp_probe')==='1';d.removeItem('pp_probe');
+          if(ok){store.be=d;reloadSaved();}}}catch(e){}
       }
     }
   }catch(e){}
+  PLAT.pending=false;cgDone();
   if(!cgReady&&window.PokiSDK){
     try{await PokiSDK.init();pokiReady=true;PLAT.name='poki';}catch(e){pokiReady=true;PLAT.name='poki';}
     document.body.classList.add('plat-poki');
@@ -808,7 +821,11 @@ const PLAT={
 /* =====================================================================
    UTILITIES
    ===================================================================== */
-const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,String(v));}catch(e){}}};
+// All saves go through store: localStorage, or the CrazyGames Data module once the SDK is ready (v5.6, store.be)
+const store={be:null,
+  get(k,d){try{const v=(this.be||localStorage).getItem(k);return v==null?d:v;}catch(e){return d;}},
+  set(k,v){try{(this.be||localStorage).setItem(k,String(v));}catch(e){}},
+  del(k){try{(this.be||localStorage).removeItem(k);}catch(e){}}};
 const $=id=>document.getElementById(id);
 const show=id=>$(id).classList.add('on'), hide=id=>$(id).classList.remove('on');
 const fmt=n=>Math.round(n).toLocaleString('en-US');
@@ -842,6 +859,7 @@ const Sound=(()=>{
     resume(){const a=ctx();if(a&&a.state==='suspended')a.resume();},
     toggle(){on=!on;store.set('pp_sound',on?'1':'0');if(on)this.resume();refreshSoundIcons();},
     setMuted(m){muted=m;refreshSoundIcons();},duck(){ducked=true;},unduck(){ducked=false;},
+    reload(){on=store.get('pp_sound','0')==='1';}, // v5.6: after switching to the Data module
     get on(){return on&&!muted;}
   };
 })();
@@ -898,9 +916,32 @@ const MD=[
 const PHONE_BACK_MAX=3; // at most this many unpaid phone payments come back in one month
 const beats=(tid,m)=>!m.isBoss&&MD[m.mid].ctr===tid;
 const BD=[{id:0,hp:2800,spd:24,pen:900},{id:1,hp:7500,spd:28,pen:2800},{id:2,hp:18000,spd:32,pen:9000}];
-const salaryFor=m=>Math.floor(Math.floor(BASE_SAL*Math.pow(WAGE,m-1))*(S.metaUnlocks.salary?1.1:1));
+// v5.7 (v5-E) jobs: own pay curve, starting cash and pay for stopped expenses. Intern is the game as it was before.
+// Owned jobs: pp_jobs (Intern always), last pick: pp_job. The loan stays on the Intern pay curve for every job.
+// Numbers from the bot (design_doc 10.2): Assistant manager helps a weaker player most, Freelancer a stronger one.
+const JOBS=[
+  {id:'intern',t:'Intern',cost:0,base:BASE_SAL,wage:WAGE,start:170,reward:1,up:'Pay rises 10% every month',dn:'Small first paychecks'},
+  {id:'manager',t:'Assistant manager',cost:25,base:238,wage:1.07,start:170,reward:1,up:'Bigger paychecks for the first year',dn:'Raises are only 7% a month'},
+  {id:'freelance',t:'Freelancer',cost:40,base:102,wage:WAGE,start:250,reward:1.5,up:'Start with 250 G. Stopped expenses pay 50% more',dn:'Paychecks are 40% smaller'}];
+const jobsOwned=()=>{let o=[];try{o=JSON.parse(store.get('pp_jobs','[]'))||[];}catch(e){}return JOBS.filter(j=>!j.cost||o.includes(j.id)).map(j=>j.id);};
+const jobOf=id=>JOBS.find(j=>j.id===id&&jobsOwned().includes(id))||JOBS[0];
+const salaryFor=m=>Math.floor(Math.floor(S.job.base*Math.pow(S.job.wage,m-1))*(perk('salary')?1.1:1));
+// v5.8 (v5-F) Daily budget: one run a day that is the same for everyone (UTC date): each month's expenses, the event cards
+// offered, Flash sale discounts and the job of the day. No perks, no loan. Best month of the day and the day streak are
+// kept on this device (pp_daily, pp_streak). rng(k) is Math.random in a normal run, so normal runs are unchanged.
+const DAY_MS=864e5;
+const dayKey=(t=Date.now())=>new Date(t).toISOString().slice(0,10);
+const dayName=d=>new Date(d+'T00:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
+const hashStr=t=>{let h=2166136261;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h>>>0;};
+const mulberry=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+const rng=k=>{if(!S.daily)return Math.random;const r=S.rng||(S.rng={});return r[k]||(r[k]=mulberry(hashStr(S.daily+':'+k)));};
+const dailyJob=d=>JOBS[hashStr(d+':job')%JOBS.length];
+const perk=k=>!S.daily&&!!S.metaUnlocks[k];
+const readJSON=k=>{try{return JSON.parse(store.get(k,'{}'))||{};}catch(e){return{};}};
+const dailyRec=(d=dayKey())=>{const r=readJSON('pp_daily');return r.d===d?r:{d,best:0,tries:0};};
+const dailyLabel=()=>{const r=dailyRec();return r.tries?'Best '+r.best+' mo':'New today';};
 const waveSize=m=>m%6===0?(3+Math.floor(m/3)):4+m*2; // boss month = boss + escorts
-function makeQueue(m){const n=waveSize(m),av=MD.filter(x=>x.minM<=m),q=m%6===0?['boss']:[];while(q.length<n)q.push(av[Math.floor(Math.random()*av.length)].id);return q;}
+function makeQueue(m,r=Math.random){const n=waveSize(m),av=MD.filter(x=>x.minM<=m),q=m%6===0?['boss']:[];while(q.length<n)q.push(av[Math.floor(r()*av.length)].id);return q;}
 // v5: payday interest on the balance you kept (counted before the stage refund), capped at a share of that payday's salary
 const INTEREST=0.05,INTEREST_CAP=0.5;
 const interestFor=(gold,m)=>Math.floor(Math.min(Math.max(0,gold)*INTEREST,salaryFor(m)*INTEREST_CAP));
@@ -931,9 +972,10 @@ const CARDS=[
    ===================================================================== */
 function freshState(){
   let meta={};try{meta=JSON.parse(store.get('pp_meta','{}'))||{};}catch(e){}
-  return{queue:makeQueue(1),gold:170,month:1,gauge:0,cleared:0,spawned:0,selTower:null,over:false,trans:false,wait:false,waitT:null,adUsed:false,adOffered:false,gemPaid:0,upgLv:0,adReward:0,
+  const job=jobOf(store.get('pp_job','intern'));
+  return{queue:makeQueue(1),gold:job.start,job,month:1,gauge:0,cleared:0,spawned:0,selTower:null,over:false,trans:false,wait:false,waitT:null,adUsed:false,adOffered:false,gemPaid:0,upgLv:0,adReward:0,
     startTime:Date.now(),mapIdx:0,gems:parseInt(store.get('pp_gems','0'))||0,metaUnlocks:meta,running:false,best0:bestMonth(),mod:{...MOD0},card:null,cardOffer:null,cardPending:false,cardT:null,cardPay:0,payIntr:0,
-    phoneBack:0,backLeft:0,seen:{}};
+    phoneBack:0,backLeft:0,seen:{},daily:null,rng:null};
 }
 let S=freshState();
 let towers=[],monsters=[],projs=[],fxts=[],particles=[],anim=null,lastT=0,T=0,spawnAcc=0;
@@ -941,12 +983,12 @@ let pathPx=[],pathCells=new Set(),isRankFromGO=false,hover=null,walletHurt=0;
 let shakeTimer=0,shakeIntensity=0,screenFlashColor='',screenFlashTimer=0;
 
 const UPG_DMG=1.4,UPG_PRICE=1.3; // each Upgrade all: every tower hits ×UPG_DMG, every tower built after it costs ×UPG_PRICE
-function getTD(id){const b=TD[id];const cm=Math.pow(UPG_PRICE,S.upgLv),dm=Math.pow(UPG_DMG,S.upgLv),metaDmg=S.metaUnlocks.dmg?1.15:1;
+function getTD(id){const b=TD[id];const cm=Math.pow(UPG_PRICE,S.upgLv),dm=Math.pow(UPG_DMG,S.upgLv),metaDmg=perk('dmg')?1.15:1;
   return{...b,cost:Math.floor(b.cost*cm*S.mod.cost),dmg:Math.floor(b.dmg*dm*metaDmg)};}
 const getUpgCost=()=>Math.floor(200*Math.pow(1.5,S.upgLv)*S.mod.upg);
 // what the next payday pays: salary and interest on today's balance, with this month's card applied
 const nextPay=()=>Math.floor(salaryFor(S.month+1)*S.mod.pay)+Math.floor(interestFor(S.gold,S.month+1)*S.mod.intr);
-const maxAmmo=tw=>Math.floor(getTD(tw.tid).ammo*(S.metaUnlocks.ammo?1.2:1)*Math.pow(MERGE_AMMO,tw.mlv));
+const maxAmmo=tw=>Math.floor(getTD(tw.tid).ammo*(perk('ammo')?1.2:1)*Math.pow(MERGE_AMMO,tw.mlv));
 const towerDmg=tw=>getTD(tw.tid).dmg*Math.pow(MERGE_DMG,tw.mlv);
 // What a tower returns on a stage change: what was actually paid for it (★ = its 3 parts), scaled by unused ammo
 const towerRefund=tw=>Math.floor((tw.paid||getTD(tw.tid).cost)*MAP_REFUND*(1-REFUND_AMMO_W+REFUND_AMMO_W*Math.max(0,tw.ammo)/maxAmmo(tw)));
@@ -1014,10 +1056,10 @@ class Monster{
     this.x=pathPx[0].x-CELL;this.y=pathPx[0].y;this.wpI=0;this.seed=(seedN++)*1.7;
     this.isBoss=kind==='boss';
     if(this.isBoss){const bi=Math.min(Math.floor((S.month-1)/6),BD.length-1),b=BD[bi];
-      this.mid=b.id;this.maxHp=Math.floor(b.hp*Math.pow(BOSS_INF,Math.max(0,S.month-6)));this.reward=Math.floor(b.pen*.5);
+      this.mid=b.id;this.maxHp=Math.floor(b.hp*Math.pow(BOSS_INF,Math.max(0,S.month-6)));this.reward=Math.floor(b.pen*.5*S.job.reward);
       this.spd=b.spd+S.month*1.5;this.size=60;this.pen=Math.floor(b.pen*Math.pow(PEN_INF,S.month-1));this.name=L['b'+bi];}
     else{const m=MD[typeof kind==='number'?kind:0];
-      this.mid=m.id;this.maxHp=m.hp*Math.pow(INF,S.month-1)*S.mod.hp;this.reward=Math.max(2,Math.floor(m.pen*REWARD_MULT*Math.pow(1.05,S.month-1)*S.mod.reward));
+      this.mid=m.id;this.maxHp=m.hp*Math.pow(INF,S.month-1)*S.mod.hp;this.reward=Math.max(2,Math.floor(m.pen*REWARD_MULT*Math.pow(1.05,S.month-1)*S.mod.reward*S.job.reward));
       this.spd=(m.spd+S.month*3.2)*S.mod.spd;this.size=m.size||36;this.pen=Math.floor(m.pen*Math.pow(PEN_INF,S.month-1)*S.mod.pen*(m.id===4?S.mod.penRent:1));}
     this.hp=this.maxHp;this.dead=false;this.flashTimer=0;this.tag='-'+fmtK(this.pen);this.hold=0;this.missT=0;
   }
@@ -1119,8 +1161,8 @@ const goalLine=()=>{const g=nextGoal(S.month);return g?'Next goal: '+g.t+' in '+
 function checkMonth(){
   if(S.cleared>=S.queue.length&&!S.trans&&!S.over){ // a card can add expenses, so the month ends when its queue is cleared
     const intr=Math.floor(interestFor(S.gold,S.month+1)*S.mod.intr); // on what was kept, before any stage refund
-    S.cleared=0;S.spawned=0;S.trans=true;S.month++;S.queue=makeQueue(S.month);
-    S.backLeft=S.phoneBack;for(;S.phoneBack>0;S.phoneBack--)S.queue.splice(1+Math.floor(Math.random()*(S.queue.length-1)),0,7); // v5.6
+    S.cleared=0;S.spawned=0;S.trans=true;S.month++;S.queue=makeQueue(S.month,rng('q'+S.month));
+    const rp=rng('p'+S.month);S.backLeft=S.phoneBack;for(;S.phoneBack>0;S.phoneBack--)S.queue.splice(1+Math.floor(rp()*(S.queue.length-1)),0,7); // v5.6
     const mapChange=(S.month-1)%6===0;let refund=0;
     if(mapChange){S.mapIdx=(S.mapIdx+1)%MAPS.length;const p=buildPath(S.mapIdx);pathPx=p.px;pathCells=p.cells;
       towers.forEach(tw=>refund+=towerRefund(tw));towers=[];S.gold+=refund;S.wait=true;S.waitT=WAIT_MAP;applyTheme();rebuildBoard();}
@@ -1158,7 +1200,7 @@ function buildShop(){
   updateUI();
 }
 function updateUI(){
-  $('ui-m').textContent=S.month;$('ui-map').textContent=MAPS[S.mapIdx].name;
+  $('ui-m').textContent=S.month;$('ui-map').textContent=MAPS[S.mapIdx].name+(S.daily?' · Daily':'');
   const g=$('ui-g');g.textContent=fmt(S.gold);g.classList.toggle('low',S.gold<100);
   const boss=S.month%6===0;$('hud').classList.toggle('boss',boss);
   $('ui-paylbl').textContent=S.wait?'Build phase':boss?'Boss wave':CARD_MONTH(S.month+1)?'Payday + event card':'Next payday';
@@ -1236,10 +1278,10 @@ G.upgrade=()=>{const c=getUpgCost();if(S.gold<c){Sound.play('error');showMsg('Up
   towers.forEach(tw=>{tw.recoil=1;particles.push(new Particle(tw.x,tw.y,'ring',{c:'rgba(132,103,245,.8)',r:120}));});updateUI();};
 G.useSkill=()=>{
   if(S.gauge<100||!S.running||S.over)return;S.gauge=0;updateGauge();Sound.play('sale');
-  const r=Math.random();let disc,msg,col;
-  if(r<.4){disc=20+Math.floor(Math.random()*10);msg='Small discount −'+disc+'%';col='#38bdf8';}
-  else if(r<.8){disc=30+Math.floor(Math.random()*15);msg='Season sale −'+disc+'%';col='#a78bfa';triggerShake(3,.2);}
-  else{disc=45+Math.floor(Math.random()*6);msg='Black Friday −'+disc+'%';col='#FFC94A';triggerShake(6,.4);}
+  const fr=rng('f'),r=fr();let disc,msg,col;
+  if(r<.4){disc=20+Math.floor(fr()*10);msg='Small discount −'+disc+'%';col='#38bdf8';}
+  else if(r<.8){disc=30+Math.floor(fr()*15);msg='Season sale −'+disc+'%';col='#a78bfa';triggerShake(3,.2);}
+  else{disc=45+Math.floor(fr()*6);msg='Black Friday −'+disc+'%';col='#FFC94A';triggerShake(6,.4);}
   monsters.forEach(m=>{if(!m.dead){m.hp*=1-disc/100;m.flashTimer=.18;}});flashScreen(col,.28);showMsg(msg,'big');
 };
 // End the build phase: enemies start walking only after the player says so
@@ -1253,6 +1295,7 @@ G.showHow=()=>{show('how');drawHow();};G.closeHow=()=>hide('how');
 document.addEventListener('keydown',e=>{
   if(['ArrowDown','ArrowUp',' '].includes(e.key))e.preventDefault();
   if($('card-screen').classList.contains('on')){if(e.key>='1'&&e.key<='3')G.pickCard(+e.key-1);return;}
+  if($('job-screen').classList.contains('on')){const j=JOBS[+e.key-1];if(j)G.pickJob(j.id);return;}
   if(!S.running||S.over||e.target.tagName==='INPUT')return;
   if(e.key>='1'&&e.key<='5')G.select(+e.key-1);else if(e.key==='u'||e.key==='U')G.upgrade();
   else if(e.key===' '||e.key==='Enter'){if(S.wait)G.go();else if(e.key===' ')G.useSkill();}
@@ -1273,9 +1316,9 @@ const adRetryLeft=()=>Math.max(0,noAdUntil-Date.now());
 const fmtClock=ms=>{const s=Math.ceil(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');};
 let goTimer=null;
 function renderGO(){
-  const loan=!S.adUsed,cd=loanCdLeft();
-  $('go-row').classList.toggle('solo',!loan);$('go-ad').style.display=loan?'':'none';$('go-gem').style.display=loan?'':'none';
-  $('go-quit-t').textContent=loan?'Give up':'See results';$('go-quit-s').textContent=loan?'No loan':'';$('go-quit-s').style.display=loan?'':'none';
+  const daily=!!S.daily,loan=!S.adUsed&&!daily,cd=loanCdLeft(); // v5.8: no loan in the daily budget, Try again instead
+  $('go-row').classList.toggle('solo',!loan&&!daily);$('go-ad').style.display=loan?'':'none';$('go-gem').style.display=loan?'':'none';$('go-again').style.display=daily?'':'none';
+  $('go-quit-t').textContent=daily?'Done':loan?'Give up':'See results';$('go-quit-s').textContent=daily?'Perks and records':loan?'No loan':'';$('go-quit-s').style.display=loan||daily?'':'none';
   if(!loan)return;
   const rl=adRetryLeft(),off=adBlocked?'block':cd>0?'cd':rl>0?'noad':'';
   $('go-ad').disabled=!!off;$('go-ad-t').textContent=off==='noad'?'No ad now':off?'Ad loan':'+'+fmt(S.adReward)+' G';
@@ -1286,19 +1329,23 @@ function renderGO(){
 }
 function triggerGO(){
   if(S.over)return;S.over=true;S.running=false;Sound.play('gameover');PLAT.gameplayStop();
-  const gems=Math.max(0,Math.floor(S.month*1.5)-S.gemPaid);S.gemPaid+=gems;S.gems+=gems;store.set('pp_gems',S.gems);recordStats(); // months are paid out once per run
+  const gems=Math.max(0,Math.floor(S.month*1.5)-S.gemPaid);S.gemPaid+=gems;S.gems+=gems;store.set('pp_gems',S.gems); // months are paid out once per run
   $('go-months').textContent=S.month+(S.month===1?' month':' months');$('go-gems').textContent='+'+gems;$('go-bal').textContent=fmt(S.gold)+' G';
   const tt=titleAt(S.month),ng=nextGoal(S.month);
-  $('go-title').textContent=tt?tt.t+(tt.m>S.best0?' (new)':''):'None yet';
+  $('go-title').textContent=tt?tt.t+(tt.m>S.best0?' (new)':''):'None yet';$('go-job').textContent=S.job.t;
   $('go-goal').textContent=ng?'Next goal: '+ng.t+'\n'+monthsTxt(ng.m-S.month)+' away':'You reached every goal';
+  $('go-rk').textContent='Final statement';$('go-title-k').textContent='Title';
+  if(S.daily){const r=recordDaily(),left=Date.parse(dayKey()+'T00:00:00Z')+DAY_MS-Date.now();
+    $('go-rk').textContent='Daily budget';$('go-title-k').textContent='Best today';$('go-title').textContent=monthsTxt(r.best)+(r.fresh&&r.tries>1?' (new)':'');
+    $('go-goal').textContent=dayName(S.daily)+' · Daily streak: '+(r.streak===1?'1 day':r.streak+' days')+'\nNew budget in '+Math.floor(left/36e5)+'h '+Math.floor(left%36e5/6e4)+'m';}
   S.adReward=Math.floor(BASE_SAL*Math.pow(WAGE,S.month-1))*3;
   S.adOffered=false;renderGO();
   clearInterval(goTimer);goTimer=setInterval(()=>{if($('go-screen').classList.contains('on'))renderGO();else clearInterval(goTimer);},1000);
   show('go-screen');
 }
-G.watchAd=()=>{if(S.adUsed||loanCdLeft()>0||adBlocked||adRetryLeft()>0)return;hide('go-screen');
+G.watchAd=()=>{if(S.daily||S.adUsed||loanCdLeft()>0||adBlocked||adRetryLeft()>0)return;hide('go-screen');
   PLAT.showRewarded(ok=>{if(ok){store.set('pp_loanAt',Date.now());revive();}else{noAdUntil=Date.now()+AD_RETRY;renderGO();show('go-screen');}});};
-G.gemLoan=()=>{if(S.adUsed||S.gems<LOAN_GEMS)return;S.gems-=LOAN_GEMS;store.set('pp_gems',S.gems);hide('go-screen');revive();};
+G.gemLoan=()=>{if(S.daily||S.adUsed||S.gems<LOAN_GEMS)return;S.gems-=LOAN_GEMS;store.set('pp_gems',S.gems);hide('go-screen');revive();};
 function revive(){
   S.gold=Math.max(0,S.gold)+S.adReward;S.over=false;S.adUsed=true;S.spawned=S.cleared;monsters=[];projs=[];S.wait=true;S.waitT=WAIT_LOAN;
   if(S.cleared>=S.queue.length)checkMonth(); // v5.6 fix: the month's last expense caused the bankruptcy, so go on to payday (it used to stall here)
@@ -1307,7 +1354,7 @@ function revive(){
 G.quit=()=>{clearInterval(goTimer);hide('go-screen');showPerks();};
 const PERKS=[{key:'dmg',badge:'+15%',name:'Tower damage',desc:'Every tower hits harder',cost:10,c:'#E5484D'},
   {key:'salary',badge:'+10%',name:'Salary',desc:'Bigger payday every month',cost:15,c:'#2E9E5B'},
-  {key:'startGold',badge:'+100',name:'Starting cash',desc:'Start runs with 270 G',cost:8,c:'#D99A1E'},
+  {key:'startGold',badge:'+100',name:'Starting cash',desc:'More cash at every start',cost:8,c:'#D99A1E'},
   {key:'ammo',badge:'+20%',name:'Tower ammo',desc:'Towers last longer',cost:12,c:'#5A45C9'}];
 function showPerks(){
   $('meta-gems').textContent=S.gems+(S.gems===1?' gem':' gems');const g=$('shop-grid');g.innerHTML='';
@@ -1315,65 +1362,86 @@ function showPerks(){
     row.innerHTML=`<div class="bdg">${p.badge}</div><div><b>${p.name}</b><span>${p.desc}</span></div><button ${own||S.gems<p.cost?'disabled':''}>${own?'Owned':p.cost+' gems'}</button>`;
     row.querySelector('button').onclick=()=>{if(own||S.gems<p.cost)return;S.gems-=p.cost;S.metaUnlocks[p.key]=true;store.set('pp_gems',S.gems);store.set('pp_meta',JSON.stringify(S.metaUnlocks));Sound.play('upgrade');showPerks();};
     g.appendChild(row);});
+  const lk=JOBS.filter(j=>!jobsOwned().includes(j.id));$('shop-jobs').style.display=lk.length?'':'none'; // v5.7: the next goal for gems
+  $('shop-jobs').textContent='New jobs to unlock before a run:\n'+lk.map(j=>(j.t+' '+j.cost+' gems').replace(/ /g,'\u00a0')).join(' · ');
   show('meta-shop');
 }
-G.closeShop=()=>{hide('meta-shop');checkTop10();};
-const lbQuery=()=>window.FB.query(window.FB.collection(window.db,'leaderboard'),window.FB.orderBy('month','desc'),window.FB.orderBy('timestamp','asc'),window.FB.limit(10));
-async function checkTop10(){
-  if(!window.db||!window.FB){G.showRank(true);return;}
-  try{const snap=await window.FB.getDocs(lbQuery());let n=0,low=1e9;snap.forEach(d=>{n++;low=Math.min(low,d.data().month);});
-    if(n<10||S.month>low){$('sub-d').textContent='You lasted '+monthsTxt(S.month)+'. Pick a name for the board.';show('submit-screen');setTimeout(()=>$('inp-nick').focus(),50);}
-    else G.showRank(true);}catch(e){G.showRank(true);}
-}
-// Same checks as firestore.rules (validNick, month 1–60 integer), so a rejected write never looks saved
-const NICK_RE=/^[A-Za-z0-9 ._-]{1,10}$/,NICK_BAD=['fuck','shit','bitch','asshole','nigger','cunt','dick','pussy'];
-G.submitScore=async()=>{
-  const nick=($('inp-nick').value.trim()||'Guest').slice(0,10);
-  if(!NICK_RE.test(nick)){Sound.play('error');$('sub-d').textContent='Use letters, numbers, spaces and . _ - only.';return;}
-  if(NICK_BAD.some(w=>nick.toLowerCase().includes(w))){Sound.play('error');$('sub-d').textContent='Please choose a different name.';return;}
-  let saved=true;
-  try{await window.FB.addDoc(window.FB.collection(window.db,'leaderboard'),{nickname:nick,month:Math.min(60,Math.max(1,Math.floor(S.month))),timestamp:window.FB.serverTimestamp()});}catch(e){saved=false;}
-  hide('submit-screen');G.showRank(true);if(!saved)showMsg('Could not save your score','bad');
+G.closeShop=()=>{hide('meta-shop');G.showRecords(true);};
+// v5.10 (user decision 2026-10-21): no online ranking and no Firebase. Nothing about the player leaves the game except
+// through the portal SDKs. Records come from the player's own progress (store: this device, or the CrazyGames account).
+G.showRecords=(fromGO=false)=>{
+  isRankFromGO=fromGO;$('lb-close').textContent=fromGO?'Play again':'Close';
+  const dOn=fromGO&&bestMonth()>0;$('lb-daily').style.display=dOn?'':'none';$('lb-row').classList.toggle('two',dOn);if(dOn)$('lb-daily-s').textContent=dailyLabel();
+  const b=bestMonth(),t=titleAt(b),r=dailyRec(),k=readJSON('pp_streak'),alive=k.d===dayKey()||k.d===dayKey(Date.now()-DAY_MS),n=alive?(k.n||0):0;
+  const rows=[['Longest run',b?monthsTxt(b):'None yet'],['Title',t?t.t:'None yet'],["Today's budget",r.tries?monthsTxt(r.best):'Not played yet'],
+    ['Daily streak',n?(n===1?'1 day':n+' days'):'None yet'],['Jobs',jobsOwned().length+' of '+JOBS.length],['Gems',fmt(S.gems)]];
+  $('lb-list').innerHTML=rows.map(([a,v])=>`<div class="ln"><span>${a}</span><i></i><span>${v}</span></div>`).join('');
+  show('lb-screen');
 };
-// v5.5: going on the public ranking is the player's choice; Skip saves nothing and goes on to the ranking
-G.skipScore=()=>{hide('submit-screen');G.showRank(true);};
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-G.showRank=async(fromGO=false)=>{
-  isRankFromGO=fromGO;$('lb-close').textContent=fromGO?'Play again':'Close';$('lb-list').innerHTML='';$('lb-ld').style.display='block';$('lb-ld').textContent='Loading…';show('lb-screen');
-  if(!window.db||!window.FB){$('lb-ld').textContent='The ranking is offline here.';return;}
-  try{const snap=await window.FB.getDocs(lbQuery());$('lb-ld').style.display='none';let h='',i=1;
-    if(snap.empty)h='<div class="ld">No records yet. Be the first.</div>';
-    else snap.forEach(d=>{const x=d.data();h+=`<div class="ln"${i<=3?' style="font-weight:800"':''}><span>${i}. ${esc(x.nickname)}</span><i></i><span>${x.month} mo</span></div>`;i++;});
-    $('lb-list').innerHTML=h;}catch(e){$('lb-ld').textContent='Could not load the ranking.';}
-};
-// CrazyGames: no midgame ad on a restart that follows a rewarded continue offer
+// Play again from the records after a game over. CrazyGames: no midgame ad on a restart that follows a rewarded continue offer
 G.closeRank=()=>{hide('lb-screen');if(!isRankFromGO)return;if(cgReady&&S.adOffered)restart();else PLAT.showCommercial(restart);};
-async function recordStats(){
-  if(!window.db||!window.FB)return;const pt=Math.floor((Date.now()-S.startTime)/1000),isNew=store.get('pp_played','')!=='1';
-  let retry=false;try{retry=sessionStorage.getItem('pp_retry')==='1';sessionStorage.setItem('pp_retry','1');}catch(e){}
-  const upd={playCount:window.FB.increment(1),totalPlayTime:window.FB.increment(pt)};
-  if(isNew){upd.uniquePlayers=window.FB.increment(1);store.set('pp_played','1');}if(retry)upd.retryCount=window.FB.increment(1);
-  try{await window.FB.updateDoc(window.FB.doc(window.db,'stats','global'),upd);}
-  catch(e){try{await window.FB.setDoc(window.FB.doc(window.db,'stats','global'),{playCount:1,totalPlayTime:pt,uniquePlayers:1,retryCount:0});}catch(err){}}
-}
 
 /* =====================================================================
    RUN FLOW
    ===================================================================== */
 function beginRun(){
   const p=buildPath(S.mapIdx);pathPx=p.px;pathCells=p.cells;applyTheme();rebuildBoard();S.wait=true;S.waitT=null;
-  if(S.metaUnlocks.startGold)S.gold+=100;
-  if(idleBonus>0){S.gold+=idleBonus;setTimeout(()=>{showMsg('While you were away: +'+fmt(idleBonus)+' G','big');flashGold(false);idleBonus=0;},600);}
+  if(perk('startGold'))S.gold+=100;
+  if(idleBonus>0&&!S.daily){S.gold+=idleBonus;setTimeout(()=>{showMsg('While you were away: +'+fmt(idleBonus)+' G','big');flashGold(false);idleBonus=0;},600);}
   buildShop();lastGauge=-1;updateGauge();updateQueue();resumeRun();updateUI();tutStart();
 }
 function resumeRun(){S.running=true;PLAT.gameplayStart();if(anim)cancelAnimationFrame(anim);lastT=performance.now();anim=requestAnimationFrame(loop);}
-G.start=()=>{Sound.resume();hide('start');S.startTime=Date.now();beginRun();};
-function restart(){S=freshState();towers=[];monsters=[];projs=[];fxts=[];particles=[];spawnAcc=0;$('mbanner').className='';$('tut').classList.remove('on');hide('card-screen');$('card-screen').classList.remove('late');beginRun();}
+let startWait=false;
+G.start=daily=>{
+  if(PLAT.pending){if(!startWait){startWait=true;Promise.race([PLAT.cgDone,new Promise(r=>setTimeout(r,4000))]).then(()=>{PLAT.pending=false;G.start(daily);});}return;} // v5.6
+  Sound.resume();hide('start');S.startTime=Date.now();PLAT.started=true;if(daily===true)startDaily();else askJob(beginRun);};
+// v5.6: the Data module took over from localStorage before any run: read everything again that was read at boot
+function reloadSaved(){
+  S=freshState();tutStep=parseInt(store.get('pp_tut','0'))||0;Sound.reload();refreshSoundIcons();
+  const b=titleAt(bestMonth());$('start-best').style.display=b?'':'none';if(b)$('start-best-t').textContent=b.t;
+  idleBonus=idleFrom();store.set('pp_lastPlay',Date.now());buildShop();updateGauge();refreshDaily();
+}
+function resetRun(){towers=[];monsters=[];projs=[];fxts=[];particles=[];spawnAcc=0;$('mbanner').className='';$('tut').classList.remove('on');hide('card-screen');$('card-screen').classList.remove('late');}
+function restart(){S=freshState();resetRun();askJob(beginRun);}
+// v5.8 daily budget: from the start screen (after a first run) or the records screen. d = UTC day key, fixed for the whole run
+function startDaily(d=dayKey()){
+  S=freshState();S.daily=d;S.rng={};S.job=dailyJob(d);S.gold=S.job.start;S.queue=makeQueue(1,rng('q1'));
+  resetRun();S.startTime=Date.now();beginRun();
+  if(tutStep>0)tut('Daily budget for '+dayName(d)+': the same expenses and cards for everyone today. Job: '+S.job.t+'. No perks, no loan.',7000);
+}
+function recordDaily(){ // best month and tries for that day, and the streak of days with a finished daily run
+  const r=dailyRec(S.daily);r.tries++;const fresh=S.month>r.best;if(fresh)r.best=S.month;store.set('pp_daily',JSON.stringify(r));
+  const k=readJSON('pp_streak');if(k.d!==S.daily){k.n=k.d===dayKey(Date.parse(S.daily+'T00:00:00Z')-DAY_MS)?(k.n||0)+1:1;k.d=S.daily;store.set('pp_streak',JSON.stringify(k));}
+  return{...r,fresh,streak:k.n||1};
+}
+function refreshDaily(){const on=bestMonth()>0;$('btn-daily').style.display=on?'':'none';$('play-row').classList.toggle('two',on);if(on)$('daily-s').textContent=dailyLabel();}
+G.daily=()=>{
+  if($('start').classList.contains('on')){G.start(true);return;}
+  hide('lb-screen');if(cgReady&&S.adOffered)startDaily();else PLAT.showCommercial(()=>startDaily());}; // same ad rule as Play again
+G.dailyAgain=()=>{clearInterval(goTimer);hide('go-screen');PLAT.showCommercial(()=>startDaily());};
+// v5.7: the job picker opens before a run once there is a choice: a second job owned, or gems enough to unlock one.
+// A locked card unlocks on the first tap (gems spent) and starts on the next.
+const jobChoice=()=>{const o=jobsOwned();return o.length>1||JOBS.some(j=>!o.includes(j.id)&&S.gems>=j.cost);};
+let jobNext=null,jobNew=null;
+function askJob(next){if(!jobChoice()){next();return;}jobNext=next;jobNew=null;renderJobs();show('job-screen');}
+function renderJobs(){
+  const o=jobsOwned();
+  $('job-sub').innerHTML='New jobs unlock with gems. You have <span class="gems">'+S.gems+(S.gems===1?' gem':' gems')+'</span>.';
+  $('jobs').innerHTML=JOBS.map((j,i)=>{const own=o.includes(j.id),can=S.gems>=j.cost,last=own&&j.id===S.job.id&&!jobNew;
+    const tag=j.id===jobNew?'Unlocked · tap to start':own?(last?'Last pick':''):can?'Unlock for '+j.cost+' gems':j.cost+' gems to unlock';
+    return `<button class="ecard${own?'':' lock'}${last||j.id===jobNew?' last':''}" onclick="G.pickJob('${j.id}')"${!own&&!can?' disabled':''}><span class="k">${i+1}</span><b>${j.t}</b><span class="up">${j.up}</span><span class="dn">${j.dn}</span>${tag?'<span class="jt">'+tag+'</span>':''}</button>`;}).join('');
+}
+G.pickJob=id=>{
+  const j=JOBS.find(x=>x.id===id);if(!j||!jobNext)return;
+  if(!jobsOwned().includes(id)){if(S.gems<j.cost)return;S.gems-=j.cost;store.set('pp_gems',S.gems);store.set('pp_jobs',JSON.stringify(jobsOwned().concat(id).filter(x=>x!=='intern')));
+    jobNew=id;Sound.play('upgrade');renderJobs();return;}
+  hide('job-screen');S.job=j;S.gold=j.start;store.set('pp_job',id);S.startTime=Date.now();const n=jobNext;jobNext=null;n();
+};
 // Event cards: three different cards (Pay raise only from month 9). v5.3: they open on the payday that starts the month
 // (pay = that payday, shown on top) and a CARD_TIME countdown picks one at random if the player waits
 function openCards(pay){
-  if(!S.cardOffer){const pool=CARDS.filter(c=>!c.minM||S.month>=c.minM);
-    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}S.cardOffer=pool.slice(0,3);}
+  if(!S.cardOffer){const pool=CARDS.filter(c=>!c.minM||S.month>=c.minM),r=rng('c'+S.month);
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]];}S.cardOffer=pool.slice(0,3);}
   if(pay!=null)S.cardPay=pay;
   $('card-k').innerHTML='Month '+S.month+(S.cardPay?' · Payday <b>+'+fmt(S.cardPay)+' G</b>':'');
   $('cards').innerHTML=S.cardOffer.map((c,i)=>`<button class="ecard" onclick="G.pickCard(${i})"><span class="k">${i+1}</span><b>${c.t}</b><span class="up">${typeof c.up==='function'?c.up(S.month):c.up}</span><span class="dn">${c.dn}</span></button>`).join('');
@@ -1387,8 +1455,8 @@ G.pickCard=(i,auto)=>{
   if(!S.cardPending||!S.cardOffer||!S.cardOffer[i])return;const c=S.cardOffer[i];
   S.card=c;S.mod={...MOD0,...c.mod};
   if(c.cash){S.gold+=c.cash(S.month);flashGold(false);}
-  if(c.extra){const av=MD.filter(x=>x.minM<=S.month),n=Math.ceil(S.queue.length*c.extra.share);
-    for(let k=0;k<n;k++)S.queue.splice(1+Math.floor(Math.random()*S.queue.length),0,c.extra.kind>=0?c.extra.kind:av[Math.floor(Math.random()*av.length)].id);}
+  if(c.extra){const av=MD.filter(x=>x.minM<=S.month),n=Math.ceil(S.queue.length*c.extra.share),r=rng('x'+S.month);
+    for(let k=0;k<n;k++)S.queue.splice(1+Math.floor(r()*S.queue.length),0,c.extra.kind>=0?c.extra.kind:av[Math.floor(r()*av.length)].id);}
   S.cardPending=false;S.cardOffer=null;S.cardT=null;S.trans=false;hide('card-screen');$('card-screen').classList.remove('late');
   spawnAcc=0;Sound.resume();Sound.play('upgrade');showMsg(auto?"Time's up: "+c.t:c.t,'big');
   if(S.payIntr>0)tutInterest();updateUI();updateQueue();
@@ -1400,7 +1468,7 @@ G.pickCard=(i,auto)=>{
 function update(dt){
   T+=dt;
   if(S.wait&&S.waitT!=null&&!S.over){S.waitT-=dt;if(S.waitT<=0)G.go();else updateCountdown();}
-  if(S.cardPending&&S.cardT!=null&&S.cardOffer&&!S.over){S.cardT-=dt;if(S.cardT<=0)G.pickCard(Math.floor(Math.random()*S.cardOffer.length),true);else updateCardTimer();}
+  if(S.cardPending&&S.cardT!=null&&S.cardOffer&&!S.over){S.cardT-=dt;if(S.cardT<=0)G.pickCard(Math.floor(rng('a'+S.month)()*S.cardOffer.length),true);else updateCardTimer();}
   spawnLogic(dt);
   monsters.forEach(m=>m.update(dt));monsters=monsters.filter(m=>!m.dead);
   towers=towers.filter(tw=>{if(tw.ammo<=0){if(!tw.merged){fxts.push(new FX(tw.x,tw.y,'Empty',ART.PAPER,11));burst(tw.x,tw.y,'shred',5);}return false;}return true;});
@@ -1460,7 +1528,7 @@ const StartBG=(()=>{
   }
   return{resize,start(){if(!raf){last=performance.now();raf=requestAnimationFrame(draw);}},stop(){cancelAnimationFrame(raf);raf=null;}};
 })();
-const _hideStart=G.start;G.start=()=>{StartBG.stop();_hideStart();};
+const _hideStart=G.start;G.start=d=>{StartBG.stop();_hideStart(d);};
 function drawHow(){
   const k=3,mk=id=>{const c=$(id).getContext('2d');c.setTransform(k,0,0,k,0,0);c.clearRect(0,0,64,64);c.fillStyle='#174A3C';c.fillRect(0,0,64,64);return c;};
   let c=mk('how1');c.fillStyle='rgba(255,255,255,.18)';c.fillRect(12,30,8,2);c.fillRect(15,27,2,8);ART.tower(c,0,40,32,30,1,{ammo:.8});
@@ -1472,11 +1540,12 @@ function drawHow(){
 /* =====================================================================
    BOOT
    ===================================================================== */
-let idleBonus=0;
-(()=>{const lp=parseInt(store.get('pp_lastPlay','0'));if(lp){const h=(Date.now()-lp)/3600000;if(h>.5)idleBonus=Math.min(Math.floor(h*20),500);}
-  store.set('pp_lastPlay',Date.now());window.addEventListener('pagehide',()=>store.set('pp_lastPlay',Date.now()));})();
+const idleFrom=()=>{const lp=parseInt(store.get('pp_lastPlay','0'));if(!lp)return 0;const h=(Date.now()-lp)/3600000;return h>.5?Math.min(Math.floor(h*20),500):0;};
+let idleBonus=idleFrom();
+store.set('pp_lastPlay',Date.now());window.addEventListener('pagehide',()=>store.set('pp_lastPlay',Date.now()));
 refreshSoundIcons();
 {const b=titleAt(bestMonth());if(b){$('start-best-t').textContent=b.t;$('start-best').style.display='';}}
+refreshDaily();
 {const p=buildPath(0);pathPx=p.px;pathCells=p.cells;}
 buildShop();updateGauge();applyTheme();layout();StartBG.start();
 </script>
